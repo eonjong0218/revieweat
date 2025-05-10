@@ -6,6 +6,7 @@
 *.swp
 *.class
 *.pyc
+*.iml
 .DS_Store
 .idea/
 .vscode/
@@ -56,12 +57,7 @@ env/
 *.db
 
 # ---------------------------
-# VSCode Launch Configs (optional)
-# Uncomment if you want to exclude
-# .vscode/
-
-# ---------------------------
-# Others
+# Symbolication / Obfuscation
 # ---------------------------
 *.map.json
 *.symbols
