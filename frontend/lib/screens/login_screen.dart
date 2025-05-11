@@ -12,7 +12,7 @@ class LoginScreen extends StatelessWidget {
       backgroundColor: Colors.white, // 전체 배경색 (필요하면 다른 색으로 변경 가능)
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 90), // 화면 좌우/상하 여백
+          padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 90), // 화면 좌우/상하 여백
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -41,6 +41,10 @@ class LoginScreen extends StatelessWidget {
                 controller: emailController,
                 decoration: InputDecoration(
                   hintText: 'sample@gmail.com', // 입력창 안의 예시 텍스트
+                  hintStyle: TextStyle(
+                    fontSize: 15,           // 🔹 글자 크기 줄이기 (예: 13 또는 12)
+                    color: Colors.grey[500], // 🔹 회색 약하게
+                        ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8), // 모서리 둥글기 조정
                     borderSide: const BorderSide(
@@ -54,11 +58,11 @@ class LoginScreen extends StatelessWidget {
                 ),
               ),
 
-              const SizedBox(height: 16), // 이메일과 비밀번호 입력창 사이 간격
+              const SizedBox(height: 16), // 이메일과 비밀번호 입력 라벨 사이 간격
 
               // 비밀번호 입력 라벨
               const Text(
-                '이메일',
+                '비밀번호',
                 style: TextStyle(
                   fontSize: 13,
                   color: Colors.grey, // 회색 글자
@@ -67,13 +71,17 @@ class LoginScreen extends StatelessWidget {
               ),
               const SizedBox(height: 6), // 라벨과 입력창 간격
 
-
               // 비밀번호 입력창
               TextField(
                 controller: passwordController,
                 obscureText: true, // 비밀번호 마스킹 처리
                 decoration: InputDecoration(
-                  hintText: '영문, 숫자, 특수문자 포함 8자 이상',
+                  hintText: '영문, 숫자, 특수문자 포함 8자 이상', // 입력창 안의 예시 텍스트
+                  hintStyle: TextStyle(
+                    fontSize: 15,           // 🔹 글자 크기 줄이기 (예: 13 또는 12)
+                    color: Colors.grey[500], // 🔹 회색 약하게
+                        ), 
+
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide: const BorderSide(
@@ -87,7 +95,7 @@ class LoginScreen extends StatelessWidget {
                 ),
               ),
 
-              const SizedBox(height: 24), // 입력창과 버튼 사이 간격
+              const SizedBox(height: 26), // 입력창과 버튼 사이 간격
 
               // 로그인 버튼
               SizedBox(
@@ -98,7 +106,7 @@ class LoginScreen extends StatelessWidget {
                     // TODO: 로그인 로직
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey[300], // 버튼 배경색 (현재는 비활성화 스타일)
+                    backgroundColor: Colors.grey[400], // 버튼 배경색 (현재는 비활성화 스타일)
                     foregroundColor: Colors.white,     // 버튼 텍스트 색상
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8), // 둥근 버튼 모양
@@ -108,48 +116,62 @@ class LoginScreen extends StatelessWidget {
                 ),
               ),
 
-              const SizedBox(height: 16), // 버튼과 하단 텍스트 사이 여백
+              const SizedBox(height: 12), // 버튼과 하단 텍스트 사이 여백
 
               // 하단 링크들
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly, // 가로로 균등 정렬
-                children: const [
-                  Text('회원가입', style: TextStyle(fontSize: 12)), // 각 항목 글씨 크기
-                  Text('|', style: TextStyle(fontSize: 12)),
-                  Text('자동 로그인', style: TextStyle(fontSize: 12)),
-                  Text('|', style: TextStyle(fontSize: 12)),
-                  Text('비밀번호 재설정', style: TextStyle(fontSize: 12)),
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    '회원가입',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                  Row(
+                    children: const [
+                      Text('계정 찾기', style: TextStyle(fontSize: 12)),
+                      SizedBox(width: 14), // 간격 조절
+                      Text('비밀번호 재설정', style: TextStyle(fontSize: 12)),
+                    ],
+                  ),
                 ],
               ),
 
-              const Spacer(), // 아래 카카오 버튼을 화면 하단으로 밀어내기
+              const SizedBox(height: 80), // 비밀번호 재설정 아래 여백
 
               // 카카오 로그인 버튼
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    // TODO: 카카오 로그인 연동
-                  },
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center, // 🔹 버튼 가운데 정렬
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      // TODO: 카카오 로그인 연동
+                    },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFFE812), // 카카오톡 노란색
-                    foregroundColor: Colors.black,            // 글자색 검정
+                    backgroundColor: const Color(0xFFFFE812),
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(horizontal: 40), // 🔹 양쪽 여백 줄이기
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(8), // 🔹 살짝만 둥글게
                     ),
                   ),
                   icon: Image.asset(
-                    'assets/images/kakao_icon.png', // 아이콘 이미지 경로 (assets 폴더에 있어야 함)
-                    height: 24,
+                    'assets/images/kakao_icon.png',
+                    height: 20, // 🔹 아이콘도 작게
                   ),
-                  label: const Text('카카오 로그인'),
-                ),
-              ),
+                  label: const Text(
+                    '카카오 로그인',
+                    style: TextStyle(
+                      fontSize: 13, // 🔹 글자 작게
+                      fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ), // ← Row 닫힘
             ],
-          ),
-        ),
-      ),
-    );
+          ), // ← Column 닫힘
+        ), // ← Padding 닫힘
+      ), // ← SafeArea 닫힘
+    ); // ← Scaffold 닫힘
   }
 }
