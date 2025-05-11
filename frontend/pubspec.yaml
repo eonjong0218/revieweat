@@ -23,6 +23,15 @@ flutter:
 
   assets:
     - assets/images/logo.png
+    - assets/images/kakao_icon.png
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Regular.ttf
+        - asset: assets/fonts/Inter-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Inter-SemiBold.ttf
+          weight: 600
 
 flutter_native_splash:
   color: "#ffffff"

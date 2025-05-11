@@ -13,7 +13,17 @@ class ReviewEatApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'REVIEWEAT',
-      theme: ThemeData(primarySwatch: Colors.deepOrange),
+      debugShowCheckedModeBanner: false, // 상단 debug 배너 제거
+      theme: ThemeData(
+        fontFamily: 'Inter', // ✅ 전체 글꼴을 Inter로 설정
+        primaryColor: Colors.black,
+        scaffoldBackgroundColor: Colors.white,
+        textTheme: const TextTheme(
+          bodyLarge: TextStyle(fontSize: 16.0),
+          bodyMedium: TextStyle(fontSize: 14.0),
+          titleLarge: TextStyle(fontSize: 24.0, fontWeight: FontWeight.bold),
+        ),
+      ),
       initialRoute: '/',
       routes: {
         '/': (context) => const SplashScreen(),
