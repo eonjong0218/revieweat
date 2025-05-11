@@ -8,7 +8,7 @@ plugins {
 android {
     namespace = "com.example.revieweat"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    ndkVersion = "27.0.12077973"  // 수정된 부분: 필요한 NDK 버전으로 변경
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11

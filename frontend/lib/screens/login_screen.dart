@@ -1,177 +1,219 @@
 import 'package:flutter/material.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final emailController = TextEditingController();
-    final passwordController = TextEditingController();
+  State<LoginScreen> createState() => _LoginScreenState();
+}
 
+class _LoginScreenState extends State<LoginScreen> {
+  final _formKey = GlobalKey<FormState>(); // 폼 유효성 검사용 키
+  final emailController = TextEditingController(); // 이메일 입력 컨트롤러
+  final passwordController = TextEditingController(); // 비밀번호 입력 컨트롤러
+  bool _isFormValid = false; // 폼 유효성 상태 추적
+
+  @override
+  void initState() {
+    super.initState();
+    // 텍스트 필드 변경 감지하여 버튼 활성화 상태 업데이트
+    emailController.addListener(_updateFormState);
+    passwordController.addListener(_updateFormState);
+  }
+
+  @override
+  void dispose() {
+    // 컨트롤러 해제
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+
+  // 폼 상태 업데이트 함수
+  void _updateFormState() {
+    setState(() {
+      _isFormValid = emailController.text.isNotEmpty && 
+                     emailController.text.contains('@') &&
+                     passwordController.text.length >= 8;
+    });
+  }
+
+  // 로그인 처리 함수
+  void _handleLogin() {
+    if (_formKey.currentState!.validate()) {
+      // 유효성 검사 통과 시 동작
+      // 실제 앱에서는 여기에 로그인 API 호출 코드가 들어갑니다
+      print('로그인 성공: ${emailController.text}');
+      
+      // 로그인 성공 메시지 표시
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('로그인 성공!'),
+          backgroundColor: Colors.black,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      
+      // 로그인 후 홈 화면으로 이동 (실제 앱에서 구현)
+      // Navigator.pushReplacementNamed(context, '/home');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // 전체 배경색 (필요하면 다른 색으로 변경 가능)
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 90), // 화면 좌우/상하 여백
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                '이메일과 비밀번호를\n입력해주세요.',
-                style: TextStyle(
-                  fontSize: 25, // 타이틀 글씨 크기
-                  fontWeight: FontWeight.w900, // 굵기
+          padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 90),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 타이틀 텍스트
+                const Text(
+                  '이메일과 비밀번호를\n입력해주세요.',
+                  style: TextStyle(fontSize: 25, fontWeight: FontWeight.w900),
                 ),
-              ),
-              const SizedBox(height: 20), // 타이틀 아래 여백
+                const SizedBox(height: 20),
 
-              // 이메일 입력 라벨
-              const Text(
-                '이메일',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.grey, // 회색 글자
-                  fontWeight: FontWeight.w500, // 약간 굵게
+                // 이메일 라벨
+                const Text(
+                  '이메일',
+                  style: TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500),
                 ),
-              ),
-              const SizedBox(height: 6), // 라벨과 입력창 간격
+                const SizedBox(height: 6),
 
-              // 이메일 입력창
-              TextField(
-                controller: emailController,
-                decoration: InputDecoration(
-                  hintText: 'sample@gmail.com', // 입력창 안의 예시 텍스트
-                  hintStyle: TextStyle(
-                    fontSize: 15,           // 🔹 글자 크기 줄이기 (예: 13 또는 12)
-                    color: Colors.grey[500], // 🔹 회색 약하게
-                        ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8), // 모서리 둥글기 조정
-                    borderSide: const BorderSide(
-                      color: Colors.grey, // 테두리 색상 (변경 가능)
-                    ),
+                // 이메일 입력 필드
+                TextFormField(
+                  controller: emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: InputDecoration(
+                    hintText: 'sample@gmail.com',
+                    hintStyle: TextStyle(fontSize: 15, color: Colors.grey[500]),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    errorStyle: const TextStyle(height: 0.8),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16, // 내부 좌우 여백
-                    vertical: 14,   // 내부 위아래 여백
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 16), // 이메일과 비밀번호 입력 라벨 사이 간격
-
-              // 비밀번호 입력 라벨
-              const Text(
-                '비밀번호',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.grey, // 회색 글자
-                  fontWeight: FontWeight.w500, // 약간 굵게
-                ),
-              ),
-              const SizedBox(height: 6), // 라벨과 입력창 간격
-
-              // 비밀번호 입력창
-              TextField(
-                controller: passwordController,
-                obscureText: true, // 비밀번호 마스킹 처리
-                decoration: InputDecoration(
-                  hintText: '영문, 숫자, 특수문자 포함 8자 이상', // 입력창 안의 예시 텍스트
-                  hintStyle: TextStyle(
-                    fontSize: 15,           // 🔹 글자 크기 줄이기 (예: 13 또는 12)
-                    color: Colors.grey[500], // 🔹 회색 약하게
-                        ), 
-
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(
-                      color: Colors.grey, // 테두리 색상
-                    ),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 26), // 입력창과 버튼 사이 간격
-
-              // 로그인 버튼
-              SizedBox(
-                width: double.infinity,
-                height: 48, // 버튼 높이
-                child: ElevatedButton(
-                  onPressed: () {
-                    // TODO: 로그인 로직
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return '이메일을 입력해주세요.';
+                    }
+                    if (!value.contains('@')) {
+                      return '이메일 형식이 올바르지 않습니다.';
+                    }
+                    return null;
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey[400], // 버튼 배경색 (현재는 비활성화 스타일)
-                    foregroundColor: Colors.white,     // 버튼 텍스트 색상
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8), // 둥근 버튼 모양
-                    ),
-                  ),
-                  child: const Text('로그인'),
                 ),
-              ),
+                const SizedBox(height: 16),
 
-              const SizedBox(height: 12), // 버튼과 하단 텍스트 사이 여백
+                // 비밀번호 라벨
+                const Text(
+                  '비밀번호',
+                  style: TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 6),
 
-              // 하단 링크들
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    '회원가입',
-                    style: TextStyle(fontSize: 12),
+                // 비밀번호 입력 필드
+                TextFormField(
+                  controller: passwordController,
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    hintText: '영문, 숫자, 특수문자 포함 8자 이상',
+                    hintStyle: TextStyle(fontSize: 15, color: Colors.grey[500]),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    errorStyle: const TextStyle(height: 0.8),
                   ),
-                  Row(
-                    children: const [
-                      Text('계정 찾기', style: TextStyle(fontSize: 12)),
-                      SizedBox(width: 14), // 간격 조절
-                      Text('비밀번호 재설정', style: TextStyle(fontSize: 12)),
-                    ],
-                  ),
-                ],
-              ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return '비밀번호를 입력해주세요.';
+                    }
+                    if (value.length < 8) {
+                      return '비밀번호는 8자 이상이어야 합니다.';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 26),
 
-              const SizedBox(height: 80), // 비밀번호 재설정 아래 여백
-
-              // 카카오 로그인 버튼
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center, // 🔹 버튼 가운데 정렬
-                children: [
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      // TODO: 카카오 로그인 연동
-                    },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFFE812),
-                    foregroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(horizontal: 40), // 🔹 양쪽 여백 줄이기
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8), // 🔹 살짝만 둥글게
+                // 로그인 버튼
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: _isFormValid ? _handleLogin : null, // 폼 유효성에 따라 활성화/비활성화
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _isFormValid ? Colors.black : Colors.white,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      disabledBackgroundColor: Colors.grey[300],
+                      disabledForegroundColor: Colors.grey[500],
                     ),
+                    child: const Text('로그인'),
                   ),
-                  icon: Image.asset(
-                    'assets/images/kakao_icon.png',
-                    height: 20, // 🔹 아이콘도 작게
-                  ),
-                  label: const Text(
-                    '카카오 로그인',
-                    style: TextStyle(
-                      fontSize: 13, // 🔹 글자 작게
-                      fontWeight: FontWeight.w600,
+                ),
+                const SizedBox(height: 12),
+
+                // 하단 링크들
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.pushNamed(context, '/signup'); // 회원가입 페이지로 이동
+                      },
+                      child: const Text('회원가입', style: TextStyle(fontSize: 12)),
+                    ),
+                    Row(
+                      children: [
+                        GestureDetector(
+                          onTap: () {
+                            // 계정 찾기 기능
+                          },
+                          child: const Text('계정 찾기', style: TextStyle(fontSize: 12)),
+                        ),
+                        const SizedBox(width: 14),
+                        GestureDetector(
+                          onTap: () {
+                            // 비밀번호 재설정 기능
+                          },
+                          child: const Text('비밀번호 재설정', style: TextStyle(fontSize: 12)),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 80),
+
+                // 카카오 로그인 버튼
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        // 카카오 로그인 연동 예정
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFFFE812),
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(horizontal: 40),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      icon: Image.asset('assets/images/kakao_icon.png', height: 20),
+                      label: const Text(
+                        '카카오 로그인',
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                       ),
                     ),
-                  ),
-                ],
-              ), // ← Row 닫힘
-            ],
-          ), // ← Column 닫힘
-        ), // ← Padding 닫힘
-      ), // ← SafeArea 닫힘
-    ); // ← Scaffold 닫힘
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
