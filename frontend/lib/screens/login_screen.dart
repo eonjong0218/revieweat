@@ -12,18 +12,29 @@ class LoginScreen extends StatelessWidget {
       backgroundColor: Colors.white, // 전체 배경색 (필요하면 다른 색으로 변경 가능)
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 40), // 화면 좌우/상하 여백
+          padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 90), // 화면 좌우/상하 여백
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
                 '이메일과 비밀번호를\n입력해주세요.',
                 style: TextStyle(
-                  fontSize: 22, // 타이틀 글씨 크기
-                  fontWeight: FontWeight.bold, // 굵기
+                  fontSize: 25, // 타이틀 글씨 크기
+                  fontWeight: FontWeight.w900, // 굵기
                 ),
               ),
-              const SizedBox(height: 32), // 타이틀 아래 여백
+              const SizedBox(height: 20), // 타이틀 아래 여백
+
+              // 이메일 입력 라벨
+              const Text(
+                '이메일',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey, // 회색 글자
+                  fontWeight: FontWeight.w500, // 약간 굵게
+                ),
+              ),
+              const SizedBox(height: 6), // 라벨과 입력창 간격
 
               // 이메일 입력창
               TextField(
@@ -44,6 +55,18 @@ class LoginScreen extends StatelessWidget {
               ),
 
               const SizedBox(height: 16), // 이메일과 비밀번호 입력창 사이 간격
+
+              // 비밀번호 입력 라벨
+              const Text(
+                '이메일',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey, // 회색 글자
+                  fontWeight: FontWeight.w500, // 약간 굵게
+                ),
+              ),
+              const SizedBox(height: 6), // 라벨과 입력창 간격
+
 
               // 비밀번호 입력창
               TextField(
