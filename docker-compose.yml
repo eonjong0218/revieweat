@@ -11,6 +11,8 @@ services:
       - ./backend/app:/app
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/revieweat
+      - SECRET_KEY=your-secure-secret-key
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
   db:
     image: postgres:15-alpine
