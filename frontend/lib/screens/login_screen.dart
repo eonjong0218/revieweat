@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'register_screen.dart'; // 회원가입 화면 import 추가
+import 'package:flutter/foundation.dart' show kDebugMode;
+// register_screen.dart import는 직접 RegisterScreen을 참조할 때만 필요합니다
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -44,7 +45,10 @@ class _LoginScreenState extends State<LoginScreen> {
     if (_formKey.currentState!.validate()) {
       // 유효성 검사 통과 시 동작
       // 실제 앱에서는 여기에 로그인 API 호출 코드가 들어갑니다
-      print('로그인 성공: ${emailController.text}');
+      if (kDebugMode) {
+        // 디버그 모드에서만 로그 출력
+        print('로그인 성공: ${emailController.text}');
+      }
       
       // 로그인 성공 메시지 표시
       ScaffoldMessenger.of(context).showSnackBar(
@@ -163,7 +167,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     GestureDetector(
                       onTap: () {
-                        // 회원가입 페이지로 이동 - 수정된 부분
+                        // 회원가입 페이지로 이동
                         Navigator.pushNamed(context, '/register');
                       },
                       child: const Text('회원가입', style: TextStyle(fontSize: 12)),
