@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'register_screen.dart'; // 회원가입 화면 import 추가
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -162,7 +163,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     GestureDetector(
                       onTap: () {
-                        Navigator.pushNamed(context, '/signup'); // 회원가입 페이지로 이동
+                        // 회원가입 페이지로 이동 - 수정된 부분
+                        Navigator.pushNamed(context, '/register');
                       },
                       child: const Text('회원가입', style: TextStyle(fontSize: 12)),
                     ),

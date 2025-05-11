@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
+import 'screens/register_screen.dart'; // 회원가입 화면 import 추가
 
 void main() {
   runApp(const ReviewEatApp());
@@ -28,7 +29,9 @@ class ReviewEatApp extends StatelessWidget {
       routes: {
         '/': (context) => const SplashScreen(),
         '/login': (context) => const LoginScreen(),
+        '/register': (context) => const RegisterScreen(), // 회원가입 화면 라우트 추가
       },
     );
   }
 }
+
