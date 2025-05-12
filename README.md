@@ -66,10 +66,9 @@ ReviewEat은 이런 한계를 보완해
 | DB   | PostgreSQL      | 사용자, 리뷰, 음식점 데이터 저장              |
 | Deployment | Docker Compose  | 백엔드, DB 컨테이너화하여 통합 관리            |
 
+## 📅 개발 일정 (간트 차트)
 
-
-## 📅 개발 일정
-...
+![개발 일정 간트 차트](./frontend/assets/images/plan.png)
 
 ## 📂 폴더 구조
 ...
