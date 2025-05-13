@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
-  // super 파라미터 사용
   const RegisterScreen({super.key});
 
   @override
@@ -12,24 +11,21 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  // 폼 키 및 컨트롤러 설정
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  
-  // 상태 변수
+
   bool _isLoading = false;
   String? _errorMessage;
-  bool _obscurePassword = true; // 비밀번호 숨김 상태
-  bool _obscureConfirmPassword = true; // 비밀번호 확인 숨김 상태
-  bool _isFormValid = false; // 폼 유효성 상태
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
+  bool _isFormValid = false;
 
   @override
   void initState() {
     super.initState();
-    // 텍스트 필드 변경 감지하여 버튼 활성화 상태 업데이트
     _emailController.addListener(_updateFormState);
     _usernameController.addListener(_updateFormState);
     _passwordController.addListener(_updateFormState);
@@ -38,7 +34,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   void dispose() {
-    // 컨트롤러 해제
     _emailController.dispose();
     _usernameController.dispose();
     _passwordController.dispose();
@@ -46,18 +41,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
-  // 폼 상태 업데이트 함수
   void _updateFormState() {
     setState(() {
-      _isFormValid = _emailController.text.isNotEmpty && 
-                    _usernameController.text.isNotEmpty &&
-                    _passwordController.text.isNotEmpty &&
-                    _confirmPasswordController.text.isNotEmpty &&
-                    _passwordController.text == _confirmPasswordController.text;
+      _isFormValid = _emailController.text.isNotEmpty &&
+          _usernameController.text.isNotEmpty &&
+          _passwordController.text.isNotEmpty &&
+          _confirmPasswordController.text.isNotEmpty &&
+          _passwordController.text == _confirmPasswordController.text;
     });
   }
 
-  // 회원가입 처리 함수
   Future<void> _register() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
@@ -67,17 +60,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       try {
         final response = await http.post(
-          Uri.parse('http://localhost:8000/register'),
+          Uri.parse('http://10.0.2.2:8000/register'), // Android 에뮬레이터용
           headers: {'Content-Type': 'application/json'},
           body: json.encode({
             'email': _emailController.text,
-            'username': _usernameController.text, // 백엔드에서 username 필드도 처리해야 함
+            'username': _usernameController.text,
             'password': _passwordController.text,
           }),
         );
 
         if (response.statusCode == 200 || response.statusCode == 201) {
-          // 회원가입 성공, 로그인 화면으로 이동
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('회원가입 성공! 로그인해주세요.')),
@@ -87,7 +79,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
             MaterialPageRoute(builder: (context) => const LoginScreen()),
           );
         } else {
-          // 회원가입 실패
           final errorData = json.decode(response.body);
           setState(() {
             _errorMessage = errorData['detail'] ?? '회원가입에 실패했습니다.';
@@ -105,227 +96,158 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white, // 배경색 설정
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 회원가입 타이틀
-                  const Text(
-                    '회원가입',
-                    style: TextStyle(
-                      fontSize: 24.0,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.black,
+@override
+Widget build(BuildContext context) {
+  return Scaffold(
+    backgroundColor: Colors.white,
+    body: SafeArea(
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 80),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '회원가입',
+                  style: TextStyle(fontSize: 25, fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 18),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '이미 계정이 있으신가요?',
+                      style: TextStyle(fontSize: 14, color: Colors.black),
                     ),
-                  ),
-                  const SizedBox(height: 12.0),
-                  
-                  // 안내 텍스트
-                  RichText(
-                    text: const TextSpan(
-                      style: TextStyle(fontSize: 14.0, color: Colors.black),
-                      children: [
-                        TextSpan(text: '이미 계정이 있으신가요?\n'),
-                        TextSpan(
-                          text: '여기로 로그인하세요!',
-                          style: TextStyle(
-                            color: Colors.blue,
-                            fontWeight: FontWeight.bold,
+                    const SizedBox(height: 4), // 두 문장 사이 간격
+                    RichText(
+                      text: const TextSpan(
+                        style: TextStyle(fontSize: 14, color: Colors.black),
+                        children: [
+                          TextSpan(text: '여기로 '),
+                          TextSpan(
+                            text: '로그인하세요!',
+                            style: TextStyle(
+                              color: Color.fromARGB(255, 61, 2, 237),
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 32.0),
-                  
-                  // 이메일 입력 필드
+                  ],
+                ),
+                const SizedBox(height: 32),
+
+                  // 이메일 입력
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
-                    decoration: InputDecoration(
-                      hintText: 'Enter Email',
-                      hintStyle: TextStyle(color: Colors.grey[400]),
-                      filled: true,
-                      fillColor: Colors.grey[200],
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8.0),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
-                    ),
+                    decoration: _buildInputDecoration('Enter Email'),
                     validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return '이메일을 입력해주세요';
-                      }
-                      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-                        return '유효한 이메일 주소를 입력해주세요';
-                      }
+                      if (value == null || value.isEmpty) return '이메일을 입력해주세요';
+                      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) return '유효한 이메일 주소를 입력해주세요';
                       return null;
                     },
                   ),
-                  const SizedBox(height: 16.0),
-                  
-                  // 사용자 이름 입력 필드
+                  const SizedBox(height: 16),
+
+                  // 사용자 이름 입력
                   TextFormField(
                     controller: _usernameController,
-                    decoration: InputDecoration(
-                      hintText: 'Create User name',
-                      hintStyle: TextStyle(color: Colors.grey[400]),
-                      filled: true,
-                      fillColor: Colors.grey[200],
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8.0),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return '사용자 이름을 입력해주세요';
-                      }
-                      return null;
-                    },
+                    decoration: _buildInputDecoration('Create User name'),
+                    validator: (value) => value == null || value.isEmpty ? '사용자 이름을 입력해주세요' : null,
                   ),
-                  const SizedBox(height: 16.0),
-                  
-                  // 비밀번호 입력 필드
+                  const SizedBox(height: 16),
+
+                  // 비밀번호 입력
                   TextFormField(
                     controller: _passwordController,
                     obscureText: _obscurePassword,
-                    decoration: InputDecoration(
-                      hintText: 'Password',
-                      hintStyle: TextStyle(color: Colors.grey[400]),
-                      filled: true,
-                      fillColor: Colors.grey[200],
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8.0),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                          color: Colors.grey,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _obscurePassword = !_obscurePassword;
-                          });
-                        },
-                      ),
-                    ),
+                    decoration: _buildPasswordInputDecoration('Password', _obscurePassword, () {
+                      setState(() {
+                        _obscurePassword = !_obscurePassword;
+                      });
+                    }),
                     validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return '비밀번호를 입력해주세요';
-                      }
-                      if (value.length < 6) {
-                        return '비밀번호는 최소 6자 이상이어야 합니다';
-                      }
+                      if (value == null || value.isEmpty) return '비밀번호를 입력해주세요';
+                      if (value.length < 8) return '비밀번호는 최소 8자 이상이어야 합니다';
                       return null;
                     },
                   ),
-                  const SizedBox(height: 16.0),
-                  
-                  // 비밀번호 확인 입력 필드
+                  const SizedBox(height: 16),
+
+                  // 비밀번호 확인 입력
                   TextFormField(
                     controller: _confirmPasswordController,
                     obscureText: _obscureConfirmPassword,
-                    decoration: InputDecoration(
-                      hintText: 'Confirm Password',
-                      hintStyle: TextStyle(color: Colors.grey[400]),
-                      filled: true,
-                      fillColor: Colors.grey[200],
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8.0),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
-                          color: Colors.grey,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _obscureConfirmPassword = !_obscureConfirmPassword;
-                          });
-                        },
-                      ),
-                    ),
+                    decoration: _buildPasswordInputDecoration('Confirm Password', _obscureConfirmPassword, () {
+                      setState(() {
+                        _obscureConfirmPassword = !_obscureConfirmPassword;
+                      });
+                    }),
                     validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return '비밀번호를 다시 입력해주세요';
-                      }
-                      if (value != _passwordController.text) {
-                        return '비밀번호가 일치하지 않습니다';
-                      }
+                      if (value == null || value.isEmpty) return '비밀번호를 다시 입력해주세요';
+                      if (value != _passwordController.text) return '비밀번호가 일치하지 않습니다';
                       return null;
                     },
                   ),
-                  const SizedBox(height: 32.0),
-                  
+                  const SizedBox(height: 18),
+
                   // 에러 메시지 표시
                   if (_errorMessage != null)
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 16.0),
-                      child: Text(
-                        _errorMessage!,
-                        style: const TextStyle(color: Colors.red),
-                      ),
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
                     ),
-                  
+
                   // 회원가입 버튼
                   SizedBox(
                     width: double.infinity,
-                    height: 50.0,
+                    height: 50,
                     child: ElevatedButton(
                       onPressed: _isFormValid && !_isLoading ? _register : null,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.black,
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8.0),
-                        ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         disabledBackgroundColor: Colors.grey,
                       ),
                       child: _isLoading
                           ? const CircularProgressIndicator(color: Colors.white)
-                          : const Text(
-                              '등록',
-                              style: TextStyle(
-                                fontSize: 16.0,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                          : const Text('등록', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                     ),
                   ),
-                  
-                  // 로그인 링크
-                  const SizedBox(height: 16.0),
-                  Center(
-                    child: GestureDetector(
-                      onTap: () {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (context) => const LoginScreen()),
-                        );
-                      },
-                    ),
-                  ),
+
+                  const SizedBox(height: 16),
                 ],
               ),
             ),
           ),
         ),
+      ),
+    );
+  }
+  // 공통 인풋 데코레이션 함수
+  InputDecoration _buildInputDecoration(String hint) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: TextStyle(color: Colors.grey[400]),
+      filled: true,
+      fillColor: Colors.grey[200],
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+    );
+  }
+
+  // 비밀번호 입력 필드용 데코레이션 함수
+  InputDecoration _buildPasswordInputDecoration(String hint, bool obscure, VoidCallback toggle) {
+    return _buildInputDecoration(hint).copyWith(
+      suffixIcon: IconButton(
+        icon: Icon(obscure ? Icons.visibility_off : Icons.visibility, color: Colors.grey),
+        onPressed: toggle,
       ),
     );
   }
