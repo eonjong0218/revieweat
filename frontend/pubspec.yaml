@@ -13,6 +13,8 @@ dependencies:
   cupertino_icons: ^1.0.8
   flutter_native_splash: ^2.4.6
   http: ^1.2.0
+  kakao_map_plugin: ^0.1.6  # 카카오맵 플러그인
+  geolocator: ^9.0.2        # 위치 정보 가져오기
 
 dev_dependencies:
   flutter_test:

@@ -9,9 +9,9 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final emailController = TextEditingController(); // 이메일 입력 컨트롤러
-  final passwordController = TextEditingController(); // 비밀번호 입력 컨트롤러
-  bool _isFormValid = false; // 폼 유효성 상태 추적
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
+  bool _isFormValid = false;
   
   // 포커스 노드 추가
   final _emailFocusNode = FocusNode();
@@ -27,24 +27,24 @@ class _LoginScreenState extends State<LoginScreen> {
     // 텍스트 필드 변경 감지하여 버튼 활성화 상태 업데이트
     emailController.addListener(() {
       _updateFormState();
-      _validateEmail(); // 이메일 값이 변경될 때마다 유효성 검사
+      _validateEmail();
     });
     
     passwordController.addListener(() {
       _updateFormState();
-      _validatePassword(); // 비밀번호 값이 변경될 때마다 유효성 검사
+      _validatePassword();
     });
     
     // 포커스 리스너 추가
     _emailFocusNode.addListener(() {
       if (!_emailFocusNode.hasFocus && emailController.text.isNotEmpty) {
-        _validateEmail(); // 포커스를 잃고 텍스트가 비어있지 않을 때 검증
+        _validateEmail();
       }
     });
     
     _passwordFocusNode.addListener(() {
       if (!_passwordFocusNode.hasFocus && passwordController.text.isNotEmpty) {
-        _validatePassword(); // 포커스를 잃고 텍스트가 비어있지 않을 때 검증
+        _validatePassword();
       }
     });
   }
@@ -53,11 +53,20 @@ class _LoginScreenState extends State<LoginScreen> {
   void _validateEmail() {
     setState(() {
       if (emailController.text.isEmpty) {
-        _emailError = null; // 빈 값이면 오류 메시지 제거
+        _emailError = null;
+        if (kDebugMode) {
+          print("이메일 필드 비어있음: 오류 메시지 없음");
+        }
       } else if (!emailController.text.contains('@')) {
         _emailError = '이메일 형식이 올바르지 않습니다.';
+        if (kDebugMode) {
+          print("이메일 형식 오류: $_emailError");
+        }
       } else {
-        _emailError = null; // 유효한 이메일이면 오류 메시지 제거
+        _emailError = null;
+        if (kDebugMode) {
+          print("이메일 유효함: 오류 메시지 없음");
+        }
       }
     });
   }
@@ -66,25 +75,30 @@ class _LoginScreenState extends State<LoginScreen> {
   void _validatePassword() {
     setState(() {
       if (passwordController.text.isEmpty) {
-        _passwordError = null; // 빈 값이면 오류 메시지 제거
+        _passwordError = null;
+        if (kDebugMode) {
+          print("비밀번호 필드 비어있음: 오류 메시지 없음");
+        }
       } else if (passwordController.text.length < 8) {
         _passwordError = '비밀번호는 8자 이상이어야 합니다.';
+        if (kDebugMode) {
+          print("비밀번호 길이 오류: $_passwordError");
+        }
       } else {
-        _passwordError = null; // 유효한 비밀번호면 오류 메시지 제거
+        _passwordError = null;
+        if (kDebugMode) {
+          print("비밀번호 유효함: 오류 메시지 없음");
+        }
       }
     });
   }
 
   @override
   void dispose() {
-    // 컨트롤러 해제
     emailController.dispose();
     passwordController.dispose();
-    
-    // 포커스 노드 해제
     _emailFocusNode.dispose();
     _passwordFocusNode.dispose();
-    
     super.dispose();
   }
 
@@ -116,6 +130,9 @@ class _LoginScreenState extends State<LoginScreen> {
           duration: Duration(seconds: 2),
         ),
       );
+      
+      // 로그인 성공 후 홈 화면으로 이동
+      Navigator.pushReplacementNamed(context, '/home');
     }
   }
 
@@ -129,14 +146,12 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 타이틀 텍스트
               const Text(
                 '이메일과 비밀번호를\n입력해주세요.',
                 style: TextStyle(fontSize: 25, fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 20),
 
-              // 이메일 라벨
               const Text(
                 '이메일',
                 style: TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500),
@@ -153,13 +168,19 @@ class _LoginScreenState extends State<LoginScreen> {
                   hintStyle: TextStyle(fontSize: 15, color: Colors.grey[500]),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  errorText: _emailError, // 오류 메시지 표시
-                  errorStyle: const TextStyle(color: Colors.red, fontSize: 12),
                 ),
               ),
+              // 이메일 오류 메시지
+              if (_emailError != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4.0, left: 12.0),
+                  child: Text(
+                    _emailError!,
+                    style: const TextStyle(color: Colors.red, fontSize: 12),
+                  ),
+                ),
               const SizedBox(height: 16),
 
-              // 비밀번호 라벨
               const Text(
                 '비밀번호',
                 style: TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500),
@@ -176,13 +197,19 @@ class _LoginScreenState extends State<LoginScreen> {
                   hintStyle: TextStyle(fontSize: 15, color: Colors.grey[500]),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  errorText: _passwordError, // 오류 메시지 표시
-                  errorStyle: const TextStyle(color: Colors.red, fontSize: 12),
                 ),
               ),
+              // 비밀번호 오류 메시지
+              if (_passwordError != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4.0, left: 12.0),
+                  child: Text(
+                    _passwordError!,
+                    style: const TextStyle(color: Colors.red, fontSize: 12),
+                  ),
+                ),
               const SizedBox(height: 26),
 
-              // 로그인 버튼
               SizedBox(
                 width: double.infinity,
                 height: 48,
@@ -199,13 +226,11 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 12),
 
-              // 하단 링크들
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   GestureDetector(
                     onTap: () {
-                      // 회원가입 페이지로 이동
                       Navigator.pushNamed(context, '/register');
                     },
                     child: const Text('회원가입', style: TextStyle(fontSize: 12)),
@@ -213,16 +238,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   Row(
                     children: [
                       GestureDetector(
-                        onTap: () {
-                          // 계정 찾기 기능
-                        },
+                        onTap: () {},
                         child: const Text('계정 찾기', style: TextStyle(fontSize: 12)),
                       ),
                       const SizedBox(width: 14),
                       GestureDetector(
-                        onTap: () {
-                          // 비밀번호 재설정 기능
-                        },
+                        onTap: () {},
                         child: const Text('비밀번호 재설정', style: TextStyle(fontSize: 12)),
                       ),
                     ],
@@ -231,13 +252,13 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 80),
 
-              // 카카오 로그인 버튼
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   ElevatedButton.icon(
                     onPressed: () {
-                      // 카카오 로그인 연동 예정
+                      // 카카오 로그인 처리 후 홈 화면으로 이동
+                      Navigator.pushReplacementNamed(context, '/home');
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFFFE812),
