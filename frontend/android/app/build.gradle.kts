@@ -7,34 +7,30 @@ plugins {
 
 android {
     namespace = "com.example.revieweat"
-    compileSdk = flutter.compileSdkVersion
-    ndkVersion = "27.0.12077973"  // 수정된 부분: 필요한 NDK 버전으로 변경
+    compileSdk = 35  // 최신 compileSdk 적용
+
+    ndkVersion = "27.0.12077973"  // 필요시 유지
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17  // 최신 Java 17로 업그레이드
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
+        jvmTarget = "17"  // Kotlin JVM 타겟도 17로 맞춤
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.example.revieweat"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
+        minSdk = 23  // 최소 SDK 23 이상 권장
+        targetSdk = 34  // 최신 Target SDK 적용
+        versionCode = 1
+        versionName = "1.0.0"
     }
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("debug")  // TODO: 릴리즈 키로 변경
         }
     }
 }

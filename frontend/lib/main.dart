@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:kakao_map_plugin/kakao_map_plugin.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
-import 'screens/register_screen.dart'; // 회원가입 화면 import 추가
-import 'screens/home_map_screen.dart'; // 홈 맵 화면 import 추가
+import 'screens/register_screen.dart';
+import 'screens/home_map_screen.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // ✅ 카카오맵 초기화 (JavaScript Key)
+  AuthRepository.initialize(appKey: 'd08d4607538bf87e53c16f4f351de8a1');
+
   runApp(const ReviewEatApp());
 }
 
@@ -15,10 +21,11 @@ class ReviewEatApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'REVIEWEAT',
-      debugShowCheckedModeBanner: false, // 상단 debug 배너 제거
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        fontFamily: 'Inter', // ✅ 전체 글꼴을 Inter로 설정
-        primaryColor: Colors.black,
+        useMaterial3: true, // ✅ Material3 스타일
+        fontFamily: 'Inter', // ✅ Inter 폰트 적용
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueGrey),
         scaffoldBackgroundColor: Colors.white,
         textTheme: const TextTheme(
           bodyLarge: TextStyle(fontSize: 16.0),
@@ -30,8 +37,8 @@ class ReviewEatApp extends StatelessWidget {
       routes: {
         '/': (context) => const SplashScreen(),
         '/login': (context) => const LoginScreen(),
-        '/register': (context) => const RegisterScreen(), // 회원가입 화면 라우트 추가
-        '/home': (context) => const HomeMapScreen(), // 홈 맵 화면 라우트 추가
+        '/register': (context) => const RegisterScreen(),
+        '/home': (context) => const HomeMapScreen(),
       },
     );
   }

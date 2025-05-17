@@ -13,13 +13,15 @@ dependencies:
   cupertino_icons: ^1.0.8
   flutter_native_splash: ^2.4.6
   http: ^1.2.0
-  kakao_map_plugin: ^0.1.6  # 카카오맵 플러그인
-  geolocator: ^9.0.2        # 위치 정보 가져오기
+  kakao_map_plugin: ^0.3.6
+  geolocator: ^14.0.0    # 최신화
+  webview_flutter: ^4.12.0    # 최신화
+  flutter_inappwebview: ^5.7.2
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^5.0.0
+  flutter_lints: 5.0.0   # 6.0.0 대신 유지 (너한테 맞는 버전)
 
 flutter:
   uses-material-design: true
@@ -27,6 +29,7 @@ flutter:
   assets:
     - assets/images/logo.png
     - assets/images/kakao_icon.png
+
   fonts:
     - family: Inter
       fonts:

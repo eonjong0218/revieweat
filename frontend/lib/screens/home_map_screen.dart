@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:kakao_map_plugin/kakao_map_plugin.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
 
 class HomeMapScreen extends StatefulWidget {
   const HomeMapScreen({super.key});
@@ -10,136 +12,131 @@ class HomeMapScreen extends StatefulWidget {
 }
 
 class _HomeMapScreenState extends State<HomeMapScreen> {
-  // 카카오맵 컨트롤러
   KakaoMapController? mapController;
-  
-  // 현재 위치
   LatLng? currentLocation;
-  
-  // 지도 초기 위치 (서울 중심)
-  final LatLng defaultPosition = LatLng(37.5665, 126.9780);
-  
-  // 선택된 탭 인덱스
+  final LatLng defaultPosition = LatLng(37.5665, 126.9780); // 서울시청
   int _selectedIndex = 0;
-  
+  String? selectedMainFilter;
+
+  List<Marker> markers = [];
+  List<Map<String, dynamic>> places = [];
+
   @override
   void initState() {
     super.initState();
-    // 위치 권한 요청 및 현재 위치 가져오기
     _getCurrentLocation();
   }
-  
-  // 현재 위치 가져오기
+
   Future<void> _getCurrentLocation() async {
-    bool serviceEnabled;
-    LocationPermission permission;
-    
-    // 위치 서비스가 활성화되어 있는지 확인
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      // 위치 서비스가 비활성화된 경우 처리
-      return;
-    }
-    
-    // 위치 권한 확인
-    permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        // 권한이 거부된 경우 처리
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        debugPrint('위치 서비스 비활성화');
         return;
       }
-    }
-    
-    if (permission == LocationPermission.deniedForever) {
-      // 권한이 영구적으로 거부된 경우 처리
-      return;
-    }
-    
-    // 현재 위치 가져오기
-    final position = await Geolocator.getCurrentPosition();
-    setState(() {
-      currentLocation = LatLng(position.latitude, position.longitude);
-      
-      // 지도 컨트롤러가 초기화된 경우 현재 위치로 이동
-      if (mapController != null && currentLocation != null) {
-        mapController!.setCenter(currentLocation!);
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) return;
       }
+      if (permission == LocationPermission.deniedForever) return;
+
+      final position = await Geolocator.getCurrentPosition();
+      setState(() {
+        currentLocation = LatLng(position.latitude, position.longitude);
+      });
+    } catch (e) {
+      debugPrint('위치 정보 가져오기 실패: $e');
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> searchPlaces(String query) async {
+    const String apiKey = 'c4598299cedc1620be6be800ae88e0bf';
+    final String url = 'https://dapi.kakao.com/v2/local/search/keyword.json?query=$query';
+
+    final response = await http.get(
+      Uri.parse(url),
+      headers: {'Authorization': 'KakaoAK $apiKey'},
+    );
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      final List documents = data['documents'];
+
+      return documents.map<Map<String, dynamic>>((doc) {
+        return {
+          'position': LatLng(double.parse(doc['y']), double.parse(doc['x'])),
+          'name': doc['place_name'],
+        };
+      }).toList();
+    } else {
+      throw Exception('장소 검색 실패');
+    }
+  }
+
+  void updateMarkers(List<Map<String, dynamic>> newPlaces) {
+    setState(() {
+      places = newPlaces;
+      markers = places.map((place) {
+        return Marker(
+          markerId: UniqueKey().toString(),
+          latLng: place['position'],
+          width: 40,
+          height: 40,
+        );
+      }).toList();
     });
   }
-  
-  // 탭 선택 처리
+
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
   }
-  
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         child: Column(
           children: [
-            // 검색 바
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: TextField(
                 decoration: InputDecoration(
                   hintText: '장소 및 주소 검색',
                   prefixIcon: const Icon(Icons.search),
-                  suffixIcon: const Icon(Icons.mic),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(30.0),
                     borderSide: BorderSide.none,
                   ),
                   filled: true,
                   fillColor: Colors.grey[200],
-                  contentPadding: const EdgeInsets.symmetric(vertical: 0),
                 ),
+                onSubmitted: (value) async {
+                  final results = await searchPlaces(value);
+                  updateMarkers(results);
+
+                  if (results.isNotEmpty) {
+                    mapController?.setCenter(results.first['position']);
+                  }
+                },
               ),
             ),
-            
-            // 카테고리 필터 (가로 스크롤)
-            SizedBox(
-              height: 40,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                children: [
-                  _buildFilterChip('전체'),
-                  _buildFilterChip('주차장'),
-                  _buildFilterChip('음식점'),
-                  _buildFilterChip('카페'),
-                  _buildFilterChip('편의점'),
-                  _buildFilterChip('공원'),
-                  _buildFilterChip('병원'),
-                ],
-              ),
-            ),
-            
-            // 카카오맵
+            _buildFilterSection(),
             Expanded(
-              child: KakaoMap(
-                onMapCreated: ((controller) {
-                  mapController = controller;
-                  
-                  // 현재 위치가 있으면 해당 위치로, 없으면 기본 위치로 이동
-                  if (currentLocation != null) {
-                    controller.setCenter(currentLocation!);
-                  } else {
-                    controller.setCenter(defaultPosition);
-                  }
-                  
-                  // 컨트롤러를 통해 줌 레벨 설정
-                  try {
-                    controller.setLevel(3);
-                  } catch (e) {
-                    print('줌 레벨 설정 오류: $e');
-                  }
-                }),
-                center: currentLocation ?? defaultPosition,
-              ),
+              child: currentLocation != null
+                  ? KakaoMap(
+                      onMapCreated: (controller) {
+                        mapController = controller;
+                        controller.setCenter(currentLocation!);
+                        controller.setLevel(3);
+                      },
+                      center: currentLocation!,
+                      markers: markers,
+                    )
+                  : const Center(child: CircularProgressIndicator()),
             ),
           ],
         ),
@@ -147,9 +144,8 @@ class _HomeMapScreenState extends State<HomeMapScreen> {
       bottomNavigationBar: _buildCustomBottomNavBar(),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // 현재 위치로 이동
-          if (currentLocation != null && mapController != null) {
-            mapController!.setCenter(currentLocation!);
+          if (currentLocation != null) {
+            mapController?.setCenter(currentLocation!);
           } else {
             _getCurrentLocation();
           }
@@ -160,32 +156,88 @@ class _HomeMapScreenState extends State<HomeMapScreen> {
       ),
     );
   }
-  
-  // 필터 칩 위젯
-  Widget _buildFilterChip(String label) {
+
+  Widget _buildFilterSection() {
+    return Column(
+      children: [
+        SizedBox(
+          height: 40,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            children: [
+              _buildMainFilterChip('중심점'),
+              _buildMainFilterChip('카테고리'),
+              _buildMainFilterChip('방문상태'),
+              _buildMainFilterChip('평점'),
+              _buildMainFilterChip('동반여부'),
+            ],
+          ),
+        ),
+        if (selectedMainFilter != null) _buildSubFilter(selectedMainFilter!),
+      ],
+    );
+  }
+
+  Widget _buildMainFilterChip(String label) {
+    final bool isSelected = selectedMainFilter == label;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4.0),
-      child: FilterChip(
+      child: ChoiceChip(
         label: Text(label),
+        selected: isSelected,
         onSelected: (bool selected) {
-          // 필터 선택 처리
+          setState(() {
+            selectedMainFilter = selected ? label : null;
+          });
         },
-        backgroundColor: Colors.white,
-        shape: StadiumBorder(
-          side: BorderSide(color: Colors.grey[300]!),
-        ),
       ),
     );
   }
-  
-  // 커스텀 하단 네비게이션 바
+
+  Widget _buildSubFilter(String mainFilter) {
+    List<String> subFilters = [];
+    switch (mainFilter) {
+      case '중심점':
+        subFilters = ['현재 위치', '지도 중심'];
+        break;
+      case '카테고리':
+        subFilters = ['한식', '중식', '일식', '양식', '아시안', '디저트', '분식', '패스트푸드', '고기', '해산물', '샐러드', '브런치', '카페', '주점', '베이커리', '뷔페'];
+        break;
+      case '방문상태':
+        subFilters = ['방문 완료', '방문 전', '즐겨찾기'];
+        break;
+      case '평점':
+        subFilters = ['★1 이상', '★2 이상', '★3 이상', '★4 이상', '★5'];
+        break;
+      case '동반여부':
+        subFilters = ['혼밥', '가족', '연인', '친구'];
+        break;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Wrap(
+        spacing: 8.0,
+        children: subFilters.map((sub) {
+          return FilterChip(
+            label: Text(sub),
+            onSelected: (bool selected) {
+              debugPrint('$mainFilter → $sub 선택됨');
+            },
+          );
+        }).toList(),
+      ),
+    );
+  }
+
   Widget _buildCustomBottomNavBar() {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
+            color: Colors.grey.withAlpha(51),
             blurRadius: 10,
             spreadRadius: 0,
             offset: const Offset(0, -3),
@@ -210,11 +262,10 @@ class _HomeMapScreenState extends State<HomeMapScreen> {
       ),
     );
   }
-  
-  // 네비게이션 아이템 위젯
+
   Widget _buildNavItem(int index, IconData unselectedIcon, IconData selectedIcon, String label) {
     final bool isSelected = _selectedIndex == index;
-    
+
     return InkWell(
       onTap: () => _onItemTapped(index),
       child: Column(
@@ -238,8 +289,7 @@ class _HomeMapScreenState extends State<HomeMapScreen> {
       ),
     );
   }
-  
-  // 가운데 버튼 위젯
+
   Widget _buildCenterButton() {
     return InkWell(
       onTap: () => _onItemTapped(2),
