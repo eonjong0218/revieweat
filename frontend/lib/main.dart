@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:kakao_map_plugin/kakao_map_plugin.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
@@ -7,10 +6,6 @@ import 'screens/home_map_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // ✅ 카카오맵 초기화 (JavaScript Key)
-  AuthRepository.initialize(appKey: 'd08d4607538bf87e53c16f4f351de8a1');
-
   runApp(const ReviewEatApp());
 }
 
@@ -23,8 +18,8 @@ class ReviewEatApp extends StatelessWidget {
       title: 'REVIEWEAT',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        useMaterial3: true, // ✅ Material3 스타일
-        fontFamily: 'Inter', // ✅ Inter 폰트 적용
+        useMaterial3: true,
+        fontFamily: 'Inter',
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueGrey),
         scaffoldBackgroundColor: Colors.white,
         textTheme: const TextTheme(

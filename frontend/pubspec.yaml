@@ -5,7 +5,7 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.7.2
+  sdk: ">=3.7.2 <4.0.0"
 
 dependencies:
   flutter:
@@ -13,22 +13,20 @@ dependencies:
   cupertino_icons: ^1.0.8
   flutter_native_splash: ^2.4.6
   http: ^1.2.0
-  kakao_map_plugin: ^0.3.6
-  geolocator: ^14.0.0    # 최신화
-  webview_flutter: ^4.12.0    # 최신화
-  flutter_inappwebview: ^5.7.2
+  google_maps_flutter: ^2.5.0
+  geolocator: ^14.0.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: 5.0.0   # 6.0.0 대신 유지 (너한테 맞는 버전)
+  flutter_lints: 5.0.0
 
 flutter:
   uses-material-design: true
 
   assets:
     - assets/images/logo.png
-    - assets/images/kakao_icon.png
+    - assets/images/kakao_icon.png  # 필요 없으면 이 라인도 삭제 가능
 
   fonts:
     - family: Inter

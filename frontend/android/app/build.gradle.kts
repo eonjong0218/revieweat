@@ -5,6 +5,19 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file('local.properties')
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withReader('UTF-8') { reader ->
+        localProperties.load(reader)
+    }
+}
+
+def flutterGoogleMapKey = localProperties.getProperty('flutter.GoogleMapKey')
+if (flutterGoogleMapKey == null) {
+    flutterGoogleMapKey = ''
+}
+
 android {
     namespace = "com.example.revieweat"
     compileSdk = 35  // 최신 compileSdk 적용
@@ -26,6 +39,9 @@ android {
         targetSdk = 34  // 최신 Target SDK 적용
         versionCode = 1
         versionName = "1.0.0"
+        
+        // API 키를 리소스 값으로 추가
+        resValue "string", "GOOGLE_MAP_KEY", flutterGoogleMapKey
     }
 
     buildTypes {

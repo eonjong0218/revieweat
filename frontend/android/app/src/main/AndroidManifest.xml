@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.revieweat">
 
-    <!-- 인터넷 및 위치 권한 (WebView, Kakao Map 등 필수) -->
+    <!-- 인터넷 및 위치 권한 -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
@@ -11,10 +11,15 @@
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true">
 
-        <!-- ✅ Kakao SDK 네이티브 앱 키 설정 -->
+        <!-- ⛔ Impeller 비활성화 설정 -->
         <meta-data
-            android:name="com.kakao.sdk.AppKey"
-            android:value="5b6124332eb0894ffda390bb526df144"/>
+            android:name="io.flutter.embedding.android.EnableImpeller"
+            android:value="false" />
+
+        <!-- ✅ Google Maps API Key -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="여기에_구글_API_키_입력"/>
 
         <activity
             android:name=".MainActivity"
@@ -35,13 +40,11 @@
             </intent-filter>
         </activity>
 
-        <!-- Flutter Plugin 설정 -->
         <meta-data
             android:name="flutterEmbedding"
             android:value="2"/>
     </application>
 
-    <!-- 텍스트 처리용 queries 권장 설정 -->
     <queries>
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
