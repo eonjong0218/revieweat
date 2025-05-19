@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'search_result_screen.dart'; // 경로 맞게 수정하세요
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -21,6 +22,34 @@ class _SearchScreenState extends State<SearchScreen> {
     super.dispose();
   }
 
+  void _onFilterTap(String label) {
+    // TODO: 필터 버튼 클릭 시 동작 처리
+  }
+
+  void _onSearchSubmitted(String query) {
+    if (query.trim().isEmpty) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SearchResultScreen(
+          initialQuery: query,
+        ),
+      ),
+    );
+  }
+
+  void _onRecentSearchTap(String query) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SearchResultScreen(
+          initialQuery: query,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -38,7 +67,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
+                  boxShadow: const [
                     BoxShadow(
                       color: Colors.black12,
                       blurRadius: 6,
@@ -51,8 +80,8 @@ class _SearchScreenState extends State<SearchScreen> {
                     IconButton(
                       icon: const Icon(
                         Icons.arrow_back,
-                        size: 22, // 아이콘 크기 줄임
-                        color: Colors.black45, // 색상 더 연하게
+                        size: 22,
+                        color: Colors.black45,
                       ),
                       splashRadius: 20,
                       onPressed: () => Navigator.pop(context),
@@ -68,6 +97,7 @@ class _SearchScreenState extends State<SearchScreen> {
                           contentPadding: EdgeInsets.symmetric(vertical: 0),
                         ),
                         style: const TextStyle(fontSize: 13),
+                        onSubmitted: _onSearchSubmitted, // 키보드 엔터 처리
                       ),
                     ),
                     Icon(Icons.mic, color: Colors.grey[600]),
@@ -83,11 +113,11 @@ class _SearchScreenState extends State<SearchScreen> {
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: [
-                    _buildFilterButton('중심점'),
-                    _buildFilterButton('카테고리'),
-                    _buildFilterButton('방문상태'),
-                    _buildFilterButton('평점'),
-                    _buildFilterButton('동반여부'),
+                    FilterButton(label: '중심점', onTap: _onFilterTap),
+                    FilterButton(label: '카테고리', onTap: _onFilterTap),
+                    FilterButton(label: '방문상태', onTap: _onFilterTap),
+                    FilterButton(label: '평점', onTap: _onFilterTap),
+                    FilterButton(label: '동반여부', onTap: _onFilterTap),
                   ],
                 ),
               ),
@@ -124,7 +154,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       ),
                     ),
                     onTap: () {
-                      // TODO: 선택된 검색어 처리
+                      _onRecentSearchTap(_recentSearches[index]);
                     },
                   ),
                 ),
@@ -142,12 +172,20 @@ class _SearchScreenState extends State<SearchScreen> {
       ),
     );
   }
+}
 
-  Widget _buildFilterButton(String label) {
+class FilterButton extends StatelessWidget {
+  final String label;
+  final void Function(String) onTap;
+
+  const FilterButton({required this.label, required this.onTap, super.key});
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(right: 4),
       child: GestureDetector(
-        onTap: () {},
+        onTap: () => onTap(label),
         child: Container(
           width: 68,
           height: 24,
