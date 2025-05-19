@@ -13,6 +13,7 @@ class _HomeScreenState extends State<HomeScreen> {
   late GoogleMapController _mapController;
   LatLng _initialPosition = const LatLng(35.3350, 129.0089); // 부산대 양산캠퍼스
   final Set<Marker> _markers = {};
+  int _selectedIndex = 0;
 
   @override
   void initState() {
@@ -70,9 +71,31 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
+  // 현재 위치로 이동하는 메서드
+  void _moveToCurrentLocation() async {
+    try {
+      final Position position = await _determinePosition();
+      final LatLng userLocation = LatLng(position.latitude, position.longitude);
+      
+      _mapController.animateCamera(CameraUpdate.newCameraPosition(
+        CameraPosition(target: userLocation, zoom: 15),
+      ));
+    } catch (e) {
+      // 오류 처리
+      print('현재 위치를 가져오는데 실패했습니다: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
           GoogleMap(
@@ -83,8 +106,38 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             markers: _markers,
             myLocationEnabled: true,
-            myLocationButtonEnabled: true,
+            myLocationButtonEnabled: false, // Google Maps 기본 버튼 비활성화
             onTap: _addMarker,
+          ),
+          // 현재 위치 버튼
+          Positioned(
+            right: 12,
+            top: 620, // 검색창과 필터 버튼 아래에 위치하도록 조정
+            child: GestureDetector(
+              onTap: _moveToCurrentLocation,
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 4,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Icon(
+                    Icons.navigation,
+                    color: Colors.black54,
+                    size: 22,
+                  ),
+                ),
+              ),
+            ),
           ),
           SafeArea(
             child: Padding(
@@ -143,6 +196,28 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {},
+        shape: const CircleBorder(),
+        backgroundColor: Colors.black,
+        child: const Icon(Icons.edit, color: Colors.white),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      bottomNavigationBar: BottomAppBar(
+        height: 64, // 직접 BottomAppBar에 높이 지정
+        shape: const CircularNotchedRectangle(),
+        notchMargin: 4.0,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _buildNavItem(Icons.home_outlined, 'Home', 0),
+            _buildNavItem(Icons.calendar_today_outlined, 'History', 1),
+            const SizedBox(width: 48), // FAB 자리
+            _buildNavItem(Icons.person_outline, 'Profile', 2),
+            _buildNavItem(Icons.settings_outlined, 'Settings', 3),
+          ],
+        ),
+      ),
     );
   }
 
@@ -165,6 +240,33 @@ class _HomeScreenState extends State<HomeScreen> {
             style: const TextStyle(fontSize: 10),
             textAlign: TextAlign.center,
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(IconData icon, String label, int index) {
+    final isSelected = _selectedIndex == index;
+    return GestureDetector(
+      onTap: () => _onItemTapped(index),
+      child: Container(
+        padding: const EdgeInsets.only(top: 2), // 상단 패딩 최소화
+        width: 58,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: isSelected ? Colors.black : Colors.grey, size: 22), // 아이콘 크기 축소
+            const SizedBox(height: 2), // 간격 축소
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.black : Colors.grey,
+                fontSize: 10, // 폰트 크기 축소
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
       ),
     );
