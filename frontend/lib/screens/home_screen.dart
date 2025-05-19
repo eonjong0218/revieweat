@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
+import 'search_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -82,12 +83,10 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final Position position = await _determinePosition();
       final LatLng userLocation = LatLng(position.latitude, position.longitude);
-      
       _mapController.animateCamera(CameraUpdate.newCameraPosition(
         CameraPosition(target: userLocation, zoom: 15),
       ));
     } catch (e) {
-      // 오류 처리
       print('현재 위치를 가져오는데 실패했습니다: $e');
     }
   }
@@ -129,7 +128,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ],
                 ),
-                child: Center(
+                child: const Center(
                   child: Icon(
                     Icons.navigation,
                     color: Colors.black54,
@@ -145,39 +144,45 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 검색창
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black12,
-                          blurRadius: 6,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.search, color: Colors.grey),
-                        const SizedBox(width: 8),
-                        const Expanded(
-                          child: TextField(
-                            decoration: InputDecoration(
-                              hintText: '장소 및 주소 검색',
-                              border: InputBorder.none,
+                  // 검색창 (탭 시 SearchScreen 이동)
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const SearchScreen()),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black12,
+                            blurRadius: 6,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.search, color: Colors.grey),
+                          const SizedBox(width: 8),
+                          const Expanded(
+                            child: Text(
+                              '장소 및 주소 검색',
+                              style: TextStyle(color: Colors.grey),
                             ),
                           ),
-                        ),
-                        Icon(Icons.mic, color: Colors.grey[600]),
-                      ],
+                          Icon(Icons.mic, color: Colors.grey[600]),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 10),
-                  // 필터 버튼들
+                  // 필터 버튼들 (구성·크기 SearchScreen과 동일)
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
@@ -200,11 +205,13 @@ class _HomeScreenState extends State<HomeScreen> {
         onPressed: () {},
         shape: const CircleBorder(),
         backgroundColor: Colors.black,
-        child: const Icon(Icons.edit, color: Colors.white),
+        child: const Icon(Icons.edit, color: Color.fromARGB(255, 255, 255, 255)),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: BottomAppBar(
-        height: 64, // 직접 BottomAppBar에 높이 지정
+        height: 64,
+        color: Colors.white,      
+        elevation: 0, 
         shape: const CircularNotchedRectangle(),
         notchMargin: 4.0,
         child: Row(
@@ -250,19 +257,19 @@ class _HomeScreenState extends State<HomeScreen> {
     return GestureDetector(
       onTap: () => _onItemTapped(index),
       child: Container(
-        padding: const EdgeInsets.only(top: 2), // 상단 패딩 최소화
+        padding: const EdgeInsets.only(top: 2),
         width: 58,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: isSelected ? Colors.black : Colors.grey, size: 22), // 아이콘 크기 축소
-            const SizedBox(height: 2), // 간격 축소
+            Icon(icon, color: isSelected ? Colors.black : Colors.grey, size: 22),
+            const SizedBox(height: 2),
             Text(
               label,
               style: TextStyle(
                 color: isSelected ? Colors.black : Colors.grey,
-                fontSize: 10, // 폰트 크기 축소
+                fontSize: 10,
               ),
               textAlign: TextAlign.center,
             ),
