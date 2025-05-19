@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
-import 'screens/register_screen.dart'; // 회원가입 화면 import 추가
+import 'screens/register_screen.dart';
+import 'screens/home_screen.dart'; // ✅ 홈 화면 import
 
 void main() {
   runApp(const ReviewEatApp());
@@ -14,9 +15,9 @@ class ReviewEatApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'REVIEWEAT',
-      debugShowCheckedModeBanner: false, // 상단 debug 배너 제거
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        fontFamily: 'Inter', // ✅ 전체 글꼴을 Inter로 설정
+        fontFamily: 'Inter',
         primaryColor: Colors.black,
         scaffoldBackgroundColor: Colors.white,
         textTheme: const TextTheme(
@@ -29,9 +30,9 @@ class ReviewEatApp extends StatelessWidget {
       routes: {
         '/': (context) => const SplashScreen(),
         '/login': (context) => const LoginScreen(),
-        '/register': (context) => const RegisterScreen(), // 회원가입 화면 라우트 추가
+        '/register': (context) => const RegisterScreen(),
+        '/home': (context) => const HomeScreen(), // ✅ 홈 라우트 추가
       },
     );
   }
 }
-

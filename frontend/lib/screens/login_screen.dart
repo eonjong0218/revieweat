@@ -99,25 +99,18 @@ class _LoginScreenState extends State<LoginScreen> {
 
   // 로그인 처리 함수
   void _handleLogin() {
-    // 유효성 검사
-    _validateEmail();
-    _validatePassword();
-    
-    if (_emailError == null && _passwordError == null && _isFormValid) {
-      // 유효성 검사 통과 시 동작
-      if (kDebugMode) {
-        print('로그인 성공: ${emailController.text}');
-      }
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('로그인 성공!'),
-          backgroundColor: Colors.black,
-          duration: Duration(seconds: 2),
-        ),
-      );
+  _validateEmail();
+  _validatePassword();
+
+  if (_emailError == null && _passwordError == null && _isFormValid) {
+    if (kDebugMode) {
+      print('로그인 성공: ${emailController.text}');
     }
+
+    Navigator.pushReplacementNamed(context, '/home');
   }
+}
+
 
   @override
   Widget build(BuildContext context) {
