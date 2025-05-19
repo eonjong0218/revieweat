@@ -3,7 +3,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key}); // ✅ super.key 사용
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -11,7 +11,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   late GoogleMapController _mapController;
-  LatLng _initialPosition = const LatLng(37.5665, 126.9780); // 기본 좌표 (서울 시청)
+  LatLng _initialPosition = const LatLng(35.3350, 129.0089); // 부산대 양산캠퍼스
   final Set<Marker> _markers = {};
 
   @override
@@ -73,19 +73,99 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('지도 기반 홈 화면'),
+      body: Stack(
+        children: [
+          GoogleMap(
+            onMapCreated: _onMapCreated,
+            initialCameraPosition: CameraPosition(
+              target: _initialPosition,
+              zoom: 14.0,
+            ),
+            markers: _markers,
+            myLocationEnabled: true,
+            myLocationButtonEnabled: true,
+            onTap: _addMarker,
+          ),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 검색창
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black12,
+                          blurRadius: 6,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.search, color: Colors.grey),
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: TextField(
+                            decoration: InputDecoration(
+                              hintText: '장소 및 주소 검색',
+                              border: InputBorder.none,
+                            ),
+                          ),
+                        ),
+                        Icon(Icons.mic, color: Colors.grey[600]),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  // 필터 버튼들
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _buildFilterButton('중심점'),
+                        _buildFilterButton('카테고리'),
+                        _buildFilterButton('방문상태'),
+                        _buildFilterButton('평점'),
+                        _buildFilterButton('동반여부'),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
-      body: GoogleMap(
-        onMapCreated: _onMapCreated,
-        initialCameraPosition: CameraPosition(
-          target: _initialPosition,
-          zoom: 14.0,
+    );
+  }
+
+  Widget _buildFilterButton(String label) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 4),
+      child: GestureDetector(
+        onTap: () {},
+        child: Container(
+          width: 68,
+          height: 24,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(color: Colors.grey.shade300),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: const TextStyle(fontSize: 10),
+            textAlign: TextAlign.center,
+          ),
         ),
-        markers: _markers,
-        myLocationEnabled: true,
-        myLocationButtonEnabled: true,
-        onTap: _addMarker,
       ),
     );
   }
