@@ -16,17 +16,16 @@ async def root():
 
 @app.post("/register", response_model=schemas.UserResponse)
 def register(user: schemas.UserCreate, db: Session = Depends(dependencies.get_db)):
+    if crud.get_user_by_email(db, user.email):
+        raise HTTPException(status_code=400, detail="이미 가입된 이메일입니다.")
+    if crud.get_user_by_username(db, user.username):
+        raise HTTPException(status_code=400, detail="이미 사용 중인 사용자 이름입니다.")
+    
     try:
-        if crud.get_user_by_email(db, user.email):
-            raise HTTPException(status_code=400, detail="이미 가입된 이메일입니다.")
-        if crud.get_user_by_username(db, user.username):
-            raise HTTPException(status_code=400, detail="이미 사용 중인 사용자 이름입니다.")
         created_user = crud.create_user(db, user)
         return created_user
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"서버 오류: {str(e)}")
+    except Exception:
+        raise HTTPException(status_code=500, detail="서버 내부 오류가 발생했습니다.")
 
 @app.post("/token", response_model=schemas.Token)
 def login_for_access_token(
@@ -40,7 +39,10 @@ def login_for_access_token(
             detail="이메일 또는 비밀번호가 올바르지 않습니다.",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    access_token_expires = timedelta(minutes=auth.config.settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+
+    access_token_expires = timedelta(
+        minutes=auth.config.settings.ACCESS_TOKEN_EXPIRE_MINUTES
+    )
     access_token = auth.create_access_token(
         data={"sub": user.email},
         expires_delta=access_token_expires,

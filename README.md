@@ -102,4 +102,4 @@ MIT License
 
 | 이름 | 역할 |
 |------|------|
-| ![프로필](https://github.com/eonjong0218.png?size=24) [eonjong0218](https://github.com/eonjong0218) | 프로젝트 리드, 전체 개발 |
+| ![프로필](https://github.com/eonjong0218.png?size=40) [eonjong0218](https://github.com/eonjong0218) | 프로젝트 리드, 전체 개발 |

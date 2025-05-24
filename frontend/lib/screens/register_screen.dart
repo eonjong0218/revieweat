@@ -18,6 +18,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _confirmPasswordController = TextEditingController();
 
   String? _emailError;
+  String? _usernameError;
   String? _passwordError;
   String? _confirmPasswordError;
 
@@ -62,39 +63,42 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
   }
 
-  // 이메일 유효성 검사 함수
   void _validateEmail() {
-    if (emailController.text.isEmpty) {
-      _emailError = null;
-    } else if (!emailController.text.contains('@')) {
-      _emailError = '이메일 형식이 올바르지 않습니다.';
-    } else {
-      _emailError = null;
-    }
+    setState(() {
+      if (emailController.text.isEmpty) {
+        _emailError = null;
+      } else if (!emailController.text.contains('@')) {
+        _emailError = '이메일 형식이 올바르지 않습니다.';
+      } else {
+        _emailError = null;
+      }
+    });
     _updateFormState();
   }
 
-  // 비밀번호 유효성 검사 함수
   void _validatePassword() {
-    if (passwordController.text.isEmpty) {
-      _passwordError = null;
-    } else if (passwordController.text.length < 8) {
-      _passwordError = '비밀번호는 8자 이상이어야 합니다.';
-    } else {
-      _passwordError = null;
-    }
+    setState(() {
+      if (passwordController.text.isEmpty) {
+        _passwordError = null;  // 비어있으면 에러 메시지 없음
+      } else if (passwordController.text.length < 8) {
+        _passwordError = '비밀번호는 8자 이상이어야 합니다.';
+      } else {
+        _passwordError = null;
+      }
+    });
     _updateFormState();
   }
-
-  // 비밀번호 확인 일치 검사 함수
+  
   void _validateConfirmPassword() {
-    if (_confirmPasswordController.text.isEmpty) {
-      _confirmPasswordError = null;
-    } else if (_confirmPasswordController.text != passwordController.text) {
-      _confirmPasswordError = '비밀번호가 일치하지 않습니다';
-    } else {
-      _confirmPasswordError = null;
-    }
+    setState(() {
+      if (_confirmPasswordController.text.isEmpty) {
+        _confirmPasswordError = null;
+      } else if (_confirmPasswordController.text != passwordController.text) {
+        _confirmPasswordError = '비밀번호가 일치하지 않습니다';
+      } else {
+        _confirmPasswordError = null;
+      }
+    });
     _updateFormState();
   }
 
@@ -103,6 +107,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
       setState(() {
         _isLoading = true;
         _errorMessage = null;
+        _emailError = null;
+        _usernameError = null;
       });
 
       try {
@@ -127,8 +133,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
           );
         } else {
           final errorData = json.decode(response.body);
+          final detail = errorData['detail'] ?? '회원가입에 실패했습니다.';
+
           setState(() {
-            _errorMessage = errorData['detail'] ?? '회원가입에 실패했습니다.';
+            if (detail.contains('이메일')) {
+              _emailError = detail;
+            } else if (detail.contains('사용자 이름')) {
+              _usernameError = detail;
+            } else {
+              _errorMessage = detail;
+            }
           });
         }
       } catch (e) {
@@ -202,7 +216,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       errorText: _emailError,
                     ),
                     validator: (value) {
-                      if (value == null || value.isEmpty) return '이메일을 입력해주세요';
+                      if (value == null || value.isEmpty) {
+                        return '이메일을 입력해주세요';
+                      }
                       if (_emailError != null) return _emailError;
                       return null;
                     },
@@ -211,8 +227,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                   TextFormField(
                     controller: _usernameController,
-                    decoration: _buildInputDecoration('Create User name'),
-                    validator: (value) => value == null || value.isEmpty ? '사용자 이름을 입력해주세요' : null,
+                    decoration: _buildInputDecoration('Create User name').copyWith(
+                      errorText: _usernameError,
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return '사용자 이름을 입력해주세요';
+                      }
+                      if (_usernameError != null) return _usernameError;
+                      return null;
+                    },
                   ),
                   const SizedBox(height: 16),
 
@@ -223,9 +247,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       setState(() {
                         _obscurePassword = !_obscurePassword;
                       });
-                    }),
+                    }).copyWith(
+                      errorText: _passwordError,
+                    ),
                     validator: (value) {
-                      if (value == null || value.isEmpty) return '비밀번호를 입력해주세요';
+                      if (value == null || value.isEmpty) {
+                        return '비밀번호를 입력해주세요';
+                      }
                       if (_passwordError != null) return _passwordError;
                       return null;
                     },
@@ -239,9 +267,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       setState(() {
                         _obscureConfirmPassword = !_obscureConfirmPassword;
                       });
-                    }),
+                    }).copyWith(
+                      errorText: _confirmPasswordError,
+                    ),
                     validator: (value) {
-                      if (value == null || value.isEmpty) return '비밀번호를 다시 입력해주세요';
+                      if (value == null || value.isEmpty) {
+                        return '비밀번호 확인을 입력해주세요';
+                      }
                       if (_confirmPasswordError != null) return _confirmPasswordError;
                       return null;
                     },
