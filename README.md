@@ -99,6 +99,7 @@ ReviewEat 프로젝트에 관심 가져주셔서 감사합니다.
 MIT License
 
 ## 👥 프로젝트 참여자  
-| 프로필 | 이름 | 역할 |
-|--------|------|------|
-| ![eonjong0218](https://avatars.githubusercontent.com/u/your-github-id?v=4&s=40) | [eonjong0218](https://github.com/eonjong0218) | 프로젝트 리드, 전체 개발 |
+
+| 이름 | 역할 |
+|------|------|
+| ![프로필](https://github.com/eonjong0218.png?size=24) [eonjong0218](https://github.com/eonjong0218) | 프로젝트 리드, 전체 개발 |
