@@ -1,9 +1,0 @@
-fastapi
-uvicorn
-asyncpg
-sqlalchemy==1.4.51
-python-jose[cryptography]
-passlib[bcrypt]
-python-dotenv
-pydantic
-psycopg2-binary
