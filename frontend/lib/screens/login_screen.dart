@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -109,47 +108,30 @@ class _LoginScreenState extends State<LoginScreen> {
     _validatePassword();
 
     if (_emailError == null && _passwordError == null && _isFormValid) {
-      try {
-        final response = await http.post(
-          Uri.parse('http://192.168.0.6:8000/token'), // URL 통일
-          headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-          body: {
-            'username': emailController.text,
-            'password': passwordController.text,
-          },
-        );
+      final response = await http.post(
+        Uri.parse('http://192.168.0.6:8000/token'), // URL 통일
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: {
+          'username': emailController.text,
+          'password': passwordController.text,
+        },
+      );
 
-        if (response.statusCode == 200) {
-          final data = json.decode(response.body);
-          final token = data['access_token']; // 백엔드에서 받은 토큰
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final token = data['access_token']; // 백엔드에서 받은 토큰
 
-          if (kDebugMode) {
-            print('로그인 성공: $token');
-          }
+        // 토큰 저장 기능 추가
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('access_token', token);
 
-          // 토큰 저장 기능 추가
-          try {
-            final prefs = await SharedPreferences.getInstance();
-            await prefs.setString('access_token', token);
-            print('토큰 저장 완료: $token');
-          } catch (e) {
-            print('토큰 저장 실패: $e');
-          }
-
-          if (!mounted) return;
-          Navigator.pushReplacementNamed(context, '/home');
-        } else {
-          final errorData = json.decode(response.body);
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(errorData['detail'] ?? '로그인 실패')),
-            );
-          }
-        }
-      } catch (e) {
+        if (!mounted) return;
+        Navigator.pushReplacementNamed(context, '/home');
+      } else {
+        final errorData = json.decode(response.body);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('서버 오류: $e')),
+            SnackBar(content: Text(errorData['detail'] ?? '로그인 실패')),
           );
         }
       }
