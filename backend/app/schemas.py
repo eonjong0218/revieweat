@@ -1,4 +1,6 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, ConfigDict
+from datetime import datetime
+from typing import Optional
 
 class UserBase(BaseModel):
     email: EmailStr
@@ -13,13 +15,30 @@ class UserLogin(BaseModel):
 
 class UserResponse(UserBase):
     id: int
+    role: str
+    created_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
 
 class TokenData(BaseModel):
-    email: str | None = None
+    email: Optional[str] = None
+
+# 검색 기록 스키마 추가
+class SearchHistoryBase(BaseModel):
+    query: str
+    is_place: bool = False
+    name: Optional[str] = None
+
+class SearchHistoryCreate(SearchHistoryBase):
+    pass
+
+class SearchHistoryResponse(SearchHistoryBase):
+    id: int
+    user_id: int
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
