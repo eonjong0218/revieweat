@@ -37,202 +37,123 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Future<void> _loadSearchHistory() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('access_token');
-      
-      print('Loading search history...');
-      print('Token exists: ${token != null}');
-      
-      if (token == null) {
-        print('No token found, skipping search history load');
-        return;
-      }
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('access_token');
+    
+    if (token == null) {
+      return;
+    }
 
-      final response = await http.get(
-        Uri.parse('$_baseUrl/search-history/'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-      );
+    final response = await http.get(
+      Uri.parse('$_baseUrl/search-history/'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
 
-      print('Search history response status: ${response.statusCode}');
-      print('Search history response body: ${response.body}');
-
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        if (mounted) {
-          setState(() {
-            _recentSearches = data.map((item) => {
-              'id': item['id'],
-              'query': item['query'],
-              'name': item['name'],
-              'is_place': item['is_place'] ?? false,
-              'created_at': item['created_at'],
-            }).toList();
-          });
-          print('Loaded ${_recentSearches.length} search history items');
-        }
-      } else if (response.statusCode == 401) {
-        print('Token expired, removing from storage');
-        await prefs.remove('access_token');
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('로그인이 만료되었습니다. 다시 로그인해주세요.')),
-          );
-        }
-      } else {
-        print('Failed to load search history: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Error loading search history: $e');
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('검색 기록을 불러오는 중 오류가 발생했습니다: $e')),
-        );
+        setState(() {
+          _recentSearches = data.map((item) => {
+            'id': item['id'],
+            'query': item['query'],
+            'name': item['name'],
+            'is_place': item['is_place'] ?? false,
+            'created_at': item['created_at'],
+          }).toList();
+        });
       }
+    } else if (response.statusCode == 401) {
+      await prefs.remove('access_token');
     }
   }
 
   Future<void> _saveSearchToServer(String query, {bool isPlace = false, String? placeName}) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('access_token');
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('access_token');
+    
+    if (token == null) {
+      return;
+    }
+
+    final Map<String, dynamic> requestBody = {
+      'query': query,
+      'is_place': isPlace,
+      'name': isPlace ? placeName : null,
+    };
+
+    final response = await http.post(
+      Uri.parse('$_baseUrl/search-history/'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: json.encode(requestBody),
+    );
+
+    if ((response.statusCode == 200 || response.statusCode == 201) && mounted) {
+      final responseData = json.decode(response.body);
       
-      print('Saving search to server...');
-      print('Query: $query, isPlace: $isPlace, placeName: $placeName');
-      
-      if (token == null) {
-        print('No token found, cannot save search');
-        return;
-      }
-
-      final Map<String, dynamic> requestBody = {
-        'query': query,
-        'is_place': isPlace,
-        'name': isPlace ? placeName : null,
-      };
-
-      print('Request body: ${json.encode(requestBody)}');
-
-      final response = await http.post(
-        Uri.parse('$_baseUrl/search-history/'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-        body: json.encode(requestBody),
-      );
-
-      print('Save search response status: ${response.statusCode}');
-      print('Save search response body: ${response.body}');
-
-      if ((response.statusCode == 200 || response.statusCode == 201) && mounted) {
-        final responseData = json.decode(response.body);
+      setState(() {
+        _recentSearches.removeWhere((item) => 
+          item['query'] == query && item['is_place'] == isPlace);
         
-        setState(() {
-          _recentSearches.removeWhere((item) => 
-            item['query'] == query && item['is_place'] == isPlace);
-          
-          _recentSearches.insert(0, {
-            'id': responseData['id'],
-            'query': responseData['query'],
-            'name': responseData['name'],
-            'is_place': responseData['is_place'],
-            'created_at': responseData['created_at'],
-          });
-          
-          if (_recentSearches.length > 10) {
-            _recentSearches.removeLast();
-          }
+        _recentSearches.insert(0, {
+          'id': responseData['id'],
+          'query': responseData['query'],
+          'name': responseData['name'],
+          'is_place': responseData['is_place'],
+          'created_at': responseData['created_at'],
         });
-        print('Search saved successfully');
-      } else {
-        print('Failed to save search: ${response.statusCode}');
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('검색 기록 저장에 실패했습니다: ${response.statusCode}')),
-          );
+        
+        if (_recentSearches.length > 10) {
+          _recentSearches.removeLast();
         }
-      }
-    } catch (e) {
-      print('Error saving search: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('검색 기록 저장 중 오류가 발생했습니다: $e')),
-        );
-      }
+      });
     }
   }
 
   Future<void> _deleteSearchHistory(int id, int index) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('access_token');
-      
-      if (token == null) return;
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('access_token');
+    
+    if (token == null) return;
 
-      final response = await http.delete(
-        Uri.parse('$_baseUrl/search-history/$id'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-      );
+    final response = await http.delete(
+      Uri.parse('$_baseUrl/search-history/$id'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
 
-      print('Delete search response status: ${response.statusCode}');
-
-      if (response.statusCode == 200 && mounted) {
-        setState(() {
-          _recentSearches.removeAt(index);
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('검색 기록이 삭제되었습니다.')),
-        );
-      }
-    } catch (e) {
-      print('Error deleting search history: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('검색 기록 삭제 중 오류가 발생했습니다: $e')),
-        );
-      }
+    if (response.statusCode == 200 && mounted) {
+      setState(() {
+        _recentSearches.removeAt(index);
+      });
     }
   }
 
   Future<void> _deleteAllSearchHistory() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('access_token');
-      
-      if (token == null) return;
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('access_token');
+    
+    if (token == null) return;
 
-      final response = await http.delete(
-        Uri.parse('$_baseUrl/search-history/'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-      );
+    final response = await http.delete(
+      Uri.parse('$_baseUrl/search-history/'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
 
-      print('Delete all search history response status: ${response.statusCode}');
-
-      if (response.statusCode == 200 && mounted) {
-        setState(() {
-          _recentSearches.clear();
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('모든 검색 기록이 삭제되었습니다.')),
-        );
-      }
-    } catch (e) {
-      print('Error deleting all search history: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('검색 기록 전체 삭제 중 오류가 발생했습니다: $e')),
-        );
-      }
+    if (response.statusCode == 200 && mounted) {
+      setState(() {
+        _recentSearches.clear();
+      });
     }
   }
 
@@ -249,86 +170,56 @@ class _SearchScreenState extends State<SearchScreen> {
       _isLoading = true;
     });
 
-    try {
-      final String url = 'https://maps.googleapis.com/maps/api/place/autocomplete/json'
-          '?input=${Uri.encodeComponent(query)}'
-          '&key=$_googleApiKey'
-          '&language=ko'
-          '&components=country:kr';
+    final String url = 'https://maps.googleapis.com/maps/api/place/autocomplete/json'
+        '?input=${Uri.encodeComponent(query)}'
+        '&key=$_googleApiKey'
+        '&language=ko'
+        '&components=country:kr';
 
-      final response = await http.get(Uri.parse(url));
+    final response = await http.get(Uri.parse(url));
+    
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
       
-      print('Places API response status: ${response.statusCode}');
-      
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        print('Places API response: ${data['status']}');
-        
-        if (data['status'] == 'OK') {
-          if (mounted) {
-            setState(() {
-              _places = data['predictions'] ?? [];
-              _isLoading = false;
-            });
-          }
-        } else {
-          print('Places API error: ${data['error_message']}');
-          if (mounted) {
-            setState(() {
-              _places = [];
-              _isLoading = false;
-            });
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('장소 검색 오류: ${data['error_message']}')),
-            );
-          }
+      if (data['status'] == 'OK') {
+        if (mounted) {
+          setState(() {
+            _places = data['predictions'] ?? [];
+            _isLoading = false;
+          });
         }
       } else {
-        print('Places API HTTP error: ${response.statusCode}');
         if (mounted) {
           setState(() {
             _places = [];
             _isLoading = false;
           });
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('장소 검색에 실패했습니다. API 키를 확인해주세요.')),
-          );
         }
       }
-    } catch (e) {
-      print('Error searching places: $e');
+    } else {
       if (mounted) {
         setState(() {
           _places = [];
           _isLoading = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('장소 검색 중 오류가 발생했습니다: $e')),
-        );
       }
     }
   }
 
   Future<Map<String, dynamic>?> _getPlaceDetails(String placeId) async {
-    try {
-      final String url = 'https://maps.googleapis.com/maps/api/place/details/json'
-          '?place_id=$placeId'
-          '&key=$_googleApiKey'
-          '&language=ko'
-          '&fields=name,formatted_address,geometry,place_id';
+    final String url = 'https://maps.googleapis.com/maps/api/place/details/json'
+        '?place_id=$placeId'
+        '&key=$_googleApiKey'
+        '&language=ko'
+        '&fields=name,formatted_address,geometry,place_id';
 
-      final response = await http.get(Uri.parse(url));
+    final response = await http.get(Uri.parse(url));
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['status'] == 'OK') {
-          return data['result'];
-        } else {
-          print('Place details API error: ${data['error_message']}');
-        }
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      if (data['status'] == 'OK') {
+        return data['result'];
       }
-    } catch (e) {
-      print('Error getting place details: $e');
     }
     return null;
   }
@@ -343,7 +234,6 @@ class _SearchScreenState extends State<SearchScreen> {
   void _onSearchSubmitted(String query) async {
     if (query.trim().isEmpty) return;
     
-    print('Search submitted: ${query.trim()}');
     await _saveSearchToServer(query.trim(), isPlace: false);
     
     setState(() {
@@ -399,12 +289,6 @@ class _SearchScreenState extends State<SearchScreen> {
           ),
         );
       }
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('장소 상세 정보를 불러오지 못했습니다.')),
-        );
-      }
     }
   }
 
@@ -427,9 +311,6 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Future<void> _showDeleteAllConfirmDialog() async {
     if (_recentSearches.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('삭제할 검색 기록이 없습니다.')),
-      );
       return;
     }
 
