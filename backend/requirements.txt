@@ -1,8 +1,8 @@
 fastapi
 uvicorn[standard]
 sqlalchemy
-databases
 pydantic
 python-jose[cryptography]
 passlib[bcrypt]
 email-validator
+psycopg2-binary
