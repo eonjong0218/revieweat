@@ -30,7 +30,7 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
 
   List<Map<String, dynamic>> _searchResults = [];
   bool _isLoading = false;
-  double _sheetPosition = 0.35; // 드래그 시트의 현재 위치
+  double _sheetPosition = 0.35;
 
   static const String _apiKey = 'AIzaSyAufgjB4H_wW06l9FtmFz8wPTiq15ALKuU';
 
@@ -82,21 +82,12 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
   }
 
   void _moveToCurrentLocation() async {
-    try {
-      final Position position = await _determinePosition();
-      final LatLng userLocation = LatLng(position.latitude, position.longitude);
-      if (_mapController != null) {
-        _mapController!.animateCamera(CameraUpdate.newCameraPosition(
-          CameraPosition(target: userLocation, zoom: 15),
-        ));
-      }
-    } catch (e) {
-      debugPrint('현재 위치를 가져오는데 실패했습니다: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('현재 위치를 가져오는데 실패했습니다: $e')),
-        );
-      }
+    final Position position = await _determinePosition();
+    final LatLng userLocation = LatLng(position.latitude, position.longitude);
+    if (_mapController != null) {
+      _mapController!.animateCamera(CameraUpdate.newCameraPosition(
+        CameraPosition(target: userLocation, zoom: 15),
+      ));
     }
   }
 
@@ -117,68 +108,62 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
       _isLoading = true;
     });
 
-    try {
-      final String url = 'https://maps.googleapis.com/maps/api/place/details/json'
-          '?place_id=$placeId'
-          '&key=$_apiKey'
-          '&language=ko'
-          '&fields=name,formatted_address,geometry,place_id,rating,vicinity';
+    final String url = 'https://maps.googleapis.com/maps/api/place/details/json'
+        '?place_id=$placeId'
+        '&key=$_apiKey'
+        '&language=ko'
+        '&fields=name,formatted_address,geometry,place_id,rating,vicinity';
 
-      final response = await http.get(Uri.parse(url));
+    final response = await http.get(Uri.parse(url));
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      
+      if (data['status'] == 'OK') {
+        final place = data['result'];
+        final location = place['geometry']?['location'];
         
-        if (data['status'] == 'OK') {
-          final place = data['result'];
-          final location = place['geometry']?['location'];
-          
-          if (location != null) {
-            final lat = location['lat']?.toDouble() ?? 35.2271;
-            final lng = location['lng']?.toDouble() ?? 129.0790;
+        if (location != null) {
+          final lat = location['lat']?.toDouble() ?? 35.2271;
+          final lng = location['lng']?.toDouble() ?? 129.0790;
 
-            setState(() {
-              _searchResults = [{
-                'title': place['name'] ?? '',
-                'desc': place['formatted_address'] ?? place['vicinity'] ?? '',
-                'phone': '',
-                'tags': '',
-                'rating': place['rating']?.toString() ?? '4.0',
-                'lat': lat,
-                'lng': lng,
-              }];
-              
-              _markers = {
-                Marker(
-                  markerId: const MarkerId('selected_place'),
-                  position: LatLng(lat, lng),
-                  infoWindow: InfoWindow(
-                    title: place['name'] ?? '',
-                    snippet: place['formatted_address'] ?? place['vicinity'] ?? '',
-                  ),
+          setState(() {
+            _searchResults = [{
+              'title': place['name'] ?? '',
+              'desc': place['formatted_address'] ?? place['vicinity'] ?? '',
+              'phone': '',
+              'tags': '',
+              'rating': place['rating']?.toString() ?? '4.0',
+              'lat': lat,
+              'lng': lng,
+            }];
+            
+            _markers = {
+              Marker(
+                markerId: const MarkerId('selected_place'),
+                position: LatLng(lat, lng),
+                infoWindow: InfoWindow(
+                  title: place['name'] ?? '',
+                  snippet: place['formatted_address'] ?? place['vicinity'] ?? '',
                 ),
-              };
-            });
+              ),
+            };
+          });
 
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (_mapController != null) {
-                _mapController!.animateCamera(
-                  CameraUpdate.newLatLngZoom(LatLng(lat, lng), 16.0),
-                );
-              }
-            });
-          }
-        } else {
-          debugPrint('Place Details API 오류: ${data['status']}');
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (_mapController != null) {
+              _mapController!.animateCamera(
+                CameraUpdate.newLatLngZoom(LatLng(lat, lng), 16.0),
+              );
+            }
+          });
         }
       }
-    } catch (e) {
-      debugPrint('Place Details API 예외 발생: $e');
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
     }
+
+    setState(() {
+      _isLoading = false;
+    });
   }
 
   void _displaySpecificPlace() {
@@ -233,87 +218,77 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
     final url =
         'https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=$defaultLat,$defaultLng&radius=5000&keyword=${Uri.encodeComponent(query)}&key=$_apiKey&language=ko';
 
-    try {
-      final response = await http.get(Uri.parse(url));
+    final response = await http.get(Uri.parse(url));
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
 
-        if (data['status'] == 'OK') {
-          final results = data['results'] as List;
+      if (data['status'] == 'OK') {
+        final results = data['results'] as List;
 
-          final places = <Map<String, dynamic>>[];
-          final markers = <Marker>{};
+        final places = <Map<String, dynamic>>[];
+        final markers = <Marker>{};
 
-          for (int i = 0; i < results.length; i++) {
-            final place = results[i];
-            final location = place['geometry']?['location'];
+        for (int i = 0; i < results.length; i++) {
+          final place = results[i];
+          final location = place['geometry']?['location'];
+          
+          if (location != null) {
+            final lat = location['lat']?.toDouble() ?? 0.0;
+            final lng = location['lng']?.toDouble() ?? 0.0;
             
-            if (location != null) {
-              final lat = location['lat']?.toDouble() ?? 0.0;
-              final lng = location['lng']?.toDouble() ?? 0.0;
-              
-              places.add({
-                'title': place['name'] ?? '',
-                'desc': place['vicinity'] ?? '',
-                'phone': '',
-                'tags': _getPlaceTypes(place['types']),
-                'rating': place['rating']?.toString() ?? '4.0',
-                'lat': lat,
-                'lng': lng,
-              });
+            places.add({
+              'title': place['name'] ?? '',
+              'desc': place['vicinity'] ?? '',
+              'phone': '',
+              'tags': _getPlaceTypes(place['types']),
+              'rating': place['rating']?.toString() ?? '4.0',
+              'lat': lat,
+              'lng': lng,
+            });
 
-              markers.add(
-                Marker(
-                  markerId: MarkerId('place_$i'),
-                  position: LatLng(lat, lng),
-                  infoWindow: InfoWindow(
-                    title: place['name'] ?? '',
-                    snippet: place['vicinity'] ?? '',
-                  ),
+            markers.add(
+              Marker(
+                markerId: MarkerId('place_$i'),
+                position: LatLng(lat, lng),
+                infoWindow: InfoWindow(
+                  title: place['name'] ?? '',
+                  snippet: place['vicinity'] ?? '',
                 ),
-              );
-            }
-          }
-
-          setState(() {
-            _searchResults = places;
-            _markers = markers;
-          });
-
-          if (places.isNotEmpty && _mapController != null) {
-            _mapController!.animateCamera(
-              CameraUpdate.newLatLngZoom(
-                LatLng(defaultLat, defaultLng),
-                12.0,
               ),
             );
           }
-        } else {
-          debugPrint('Places API 오류: ${data['status']}');
-          setState(() {
-            _searchResults = [];
-            _markers = {};
-          });
+        }
+
+        setState(() {
+          _searchResults = places;
+          _markers = markers;
+        });
+
+        if (places.isNotEmpty && _mapController != null) {
+          _mapController!.animateCamera(
+            CameraUpdate.newLatLngZoom(
+              LatLng(defaultLat, defaultLng),
+              12.0,
+            ),
+          );
         }
       } else {
-        debugPrint('HTTP 요청 실패: ${response.statusCode}');
         setState(() {
           _searchResults = [];
           _markers = {};
         });
       }
-    } catch (e) {
-      debugPrint('예외 발생: $e');
+    } else {
       setState(() {
         _searchResults = [];
         _markers = {};
       });
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
     }
+
+    setState(() {
+      _isLoading = false;
+    });
   }
 
   String _getPlaceTypes(List<dynamic>? types) {
@@ -345,9 +320,7 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
     return Padding(
       padding: const EdgeInsets.only(right: 4),
       child: GestureDetector(
-        onTap: () {
-          debugPrint('필터 선택: $label');
-        },
+        onTap: () {},
         child: Container(
           width: 68,
           height: 24,
@@ -375,7 +348,6 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
           ),
         );
 
-        debugPrint('현 위치 기준 재검색: ${center.latitude}, ${center.longitude}');
         _performNearbySearch(center.latitude, center.longitude);
       },
       child: Container(
@@ -388,9 +360,9 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
             BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 1)),
           ],
         ),
-        child: Row(
+        child: const Row(
           mainAxisSize: MainAxisSize.min,
-          children: const [
+          children: [
             Icon(Icons.refresh, size: 16, color: Colors.black87),
             SizedBox(width: 4),
             Text('현 위치 기준 재검색', style: TextStyle(fontSize: 12, color: Colors.black87)),
@@ -408,62 +380,58 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
     final url =
         'https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=$lat,$lng&radius=2000&keyword=${Uri.encodeComponent(_searchController.text)}&key=$_apiKey&language=ko';
 
-    try {
-      final response = await http.get(Uri.parse(url));
+    final response = await http.get(Uri.parse(url));
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
 
-        if (data['status'] == 'OK') {
-          final results = data['results'] as List;
+      if (data['status'] == 'OK') {
+        final results = data['results'] as List;
 
-          final places = <Map<String, dynamic>>[];
-          final markers = <Marker>{};
+        final places = <Map<String, dynamic>>[];
+        final markers = <Marker>{};
 
-          for (int i = 0; i < results.length; i++) {
-            final place = results[i];
-            final location = place['geometry']?['location'];
+        for (int i = 0; i < results.length; i++) {
+          final place = results[i];
+          final location = place['geometry']?['location'];
+          
+          if (location != null) {
+            final placeLat = location['lat']?.toDouble() ?? 0.0;
+            final placeLng = location['lng']?.toDouble() ?? 0.0;
             
-            if (location != null) {
-              final placeLat = location['lat']?.toDouble() ?? 0.0;
-              final placeLng = location['lng']?.toDouble() ?? 0.0;
-              
-              places.add({
-                'title': place['name'] ?? '',
-                'desc': place['vicinity'] ?? '',
-                'phone': '',
-                'tags': _getPlaceTypes(place['types']),
-                'rating': place['rating']?.toString() ?? '4.0',
-                'lat': placeLat,
-                'lng': placeLng,
-              });
+            places.add({
+              'title': place['name'] ?? '',
+              'desc': place['vicinity'] ?? '',
+              'phone': '',
+              'tags': _getPlaceTypes(place['types']),
+              'rating': place['rating']?.toString() ?? '4.0',
+              'lat': placeLat,
+              'lng': placeLng,
+            });
 
-              markers.add(
-                Marker(
-                  markerId: MarkerId('nearby_$i'),
-                  position: LatLng(placeLat, placeLng),
-                  infoWindow: InfoWindow(
-                    title: place['name'] ?? '',
-                    snippet: place['vicinity'] ?? '',
-                  ),
+            markers.add(
+              Marker(
+                markerId: MarkerId('nearby_$i'),
+                position: LatLng(placeLat, placeLng),
+                infoWindow: InfoWindow(
+                  title: place['name'] ?? '',
+                  snippet: place['vicinity'] ?? '',
                 ),
-              );
-            }
+              ),
+            );
           }
-
-          setState(() {
-            _searchResults = places;
-            _markers = markers;
-          });
         }
+
+        setState(() {
+          _searchResults = places;
+          _markers = markers;
+        });
       }
-    } catch (e) {
-      debugPrint('Nearby search 예외 발생: $e');
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
     }
+
+    setState(() {
+      _isLoading = false;
+    });
   }
 
   @override
@@ -686,10 +654,10 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
                       // 축소 버튼
                       GestureDetector(
                         onTap: _zoomOut,
-                        child: Container(
+                        child: const SizedBox(
                           width: 40,
                           height: 40,
-                          child: const Center(
+                          child: Center(
                             child: Icon(
                               Icons.remove,
                               color: Colors.black54,
