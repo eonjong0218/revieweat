@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
-import 'search_screen.dart';
+import 'search_screen.dart'; // SearchScreen 클래스가 여기에 정의되어 있어야 합니다.
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -12,6 +12,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   late GoogleMapController _mapController;
+  bool _mapControllerReady = false;
+
   LatLng _initialPosition = const LatLng(35.3350, 129.0089); // 부산대 양산캠퍼스
   final Set<Marker> _markers = {};
   int _selectedIndex = 0;
@@ -24,9 +26,13 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         _initialPosition = userLocation;
       });
-      _mapController.animateCamera(CameraUpdate.newCameraPosition(
-        CameraPosition(target: userLocation, zoom: 14),
-      ));
+      if (_mapControllerReady) {
+        _mapController.animateCamera(CameraUpdate.newCameraPosition(
+          CameraPosition(target: userLocation, zoom: 14),
+        ));
+      }
+    }).catchError((e) {
+      debugPrint('현재 위치 가져오기 실패: $e');
     });
   }
 
@@ -53,6 +59,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _onMapCreated(GoogleMapController controller) {
     _mapController = controller;
+    _mapControllerReady = true;
   }
 
   void _addMarker(LatLng position) {
@@ -78,7 +85,6 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  // 현재 위치로 이동하는 메서드
   void _moveToCurrentLocation() async {
     try {
       final Position position = await _determinePosition();
@@ -87,7 +93,7 @@ class _HomeScreenState extends State<HomeScreen> {
         CameraPosition(target: userLocation, zoom: 15),
       ));
     } catch (e) {
-      print('현재 위치를 가져오는데 실패했습니다: $e');
+      debugPrint('현재 위치를 가져오는데 실패했습니다: $e');
     }
   }
 
@@ -105,13 +111,12 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             markers: _markers,
             myLocationEnabled: true,
-            myLocationButtonEnabled: false, // Google Maps 기본 버튼 비활성화
+            myLocationButtonEnabled: false,
             onTap: _addMarker,
           ),
-          // 현재 위치 버튼
           Positioned(
             right: 12,
-            top: 620, // 검색창과 필터 버튼 아래에 위치하도록 조정
+            top: 620,
             child: GestureDetector(
               onTap: _moveToCurrentLocation,
               child: Container(
@@ -122,9 +127,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withAlpha((0.1 * 255).round()), // 변경됨
                       blurRadius: 4,
-                      offset: Offset(0, 2),
+                      offset: const Offset(0, 2),
                     ),
                   ],
                 ),
@@ -144,7 +149,6 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 검색창 (탭 시 SearchScreen 이동)
                   GestureDetector(
                     onTap: () {
                       Navigator.push(
@@ -160,9 +164,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black12,
+                            color: Colors.black.withAlpha((0.12 * 255).round()), // 그림자 약간 더 진하게
                             blurRadius: 6,
-                            offset: Offset(0, 2),
+                            offset: const Offset(0, 2),
                           ),
                         ],
                       ),
@@ -182,7 +186,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  // 필터 버튼들 (구성·크기 SearchScreen과 동일)
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
@@ -205,13 +208,13 @@ class _HomeScreenState extends State<HomeScreen> {
         onPressed: () {},
         shape: const CircleBorder(),
         backgroundColor: Colors.black,
-        child: const Icon(Icons.edit, color: Color.fromARGB(255, 255, 255, 255)),
+        child: const Icon(Icons.edit, color: Colors.white),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: BottomAppBar(
         height: 64,
-        color: Colors.white,      
-        elevation: 0, 
+        color: Colors.white,
+        elevation: 0,
         shape: const CircularNotchedRectangle(),
         notchMargin: 4.0,
         child: Row(
@@ -219,7 +222,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             _buildNavItem(Icons.home_outlined, 'Home', 0),
             _buildNavItem(Icons.calendar_today_outlined, 'History', 1),
-            const SizedBox(width: 48), // FAB 자리
+            const SizedBox(width: 48),
             _buildNavItem(Icons.person_outline, 'Profile', 2),
             _buildNavItem(Icons.settings_outlined, 'Settings', 3),
           ],
