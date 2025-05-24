@@ -2,17 +2,20 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
+import 'package:geolocator/geolocator.dart';
 import 'home_screen.dart';
 
 class SearchResultScreen extends StatefulWidget {
   final String initialQuery;
   final bool isSpecificPlace;
+  final String? placeId;
   final Map<String, dynamic>? placeDetails;
 
   const SearchResultScreen({
     super.key, 
     required this.initialQuery,
     this.isSpecificPlace = false,
+    this.placeId,
     this.placeDetails,
   });
 
@@ -27,19 +30,22 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
 
   List<Map<String, dynamic>> _searchResults = [];
   bool _isLoading = false;
+  double _sheetPosition = 0.35; // 드래그 시트의 현재 위치
 
-  static const String _apiKey = 'AIzaSyAufgjB4H_wW06l9FtmFz8wPTiq15ALKuU'; // 실제 키로 교체
+  static const String _apiKey = 'AIzaSyAufgjB4H_wW06l9FtmFz8wPTiq15ALKuU';
 
   @override
   void initState() {
     super.initState();
     _searchController = TextEditingController(text: widget.initialQuery);
     
-    if (widget.isSpecificPlace && widget.placeDetails != null) {
-      // 특정 장소인 경우 해당 장소만 표시
-      _displaySpecificPlace();
+    if (widget.isSpecificPlace) {
+      if (widget.placeId != null) {
+        _getPlaceDetailsFromId(widget.placeId!);
+      } else if (widget.placeDetails != null) {
+        _displaySpecificPlace();
+      }
     } else {
-      // 일반 검색인 경우 현재 위치 기준으로 검색
       _performLocationBasedSearch(widget.initialQuery);
     }
   }
@@ -52,6 +58,127 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
 
   void _onMapCreated(GoogleMapController controller) {
     _mapController = controller;
+  }
+
+  Future<Position> _determinePosition() async {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      return Future.error('위치 서비스가 비활성화되어 있습니다.');
+    }
+
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        return Future.error('위치 권한이 거부되었습니다.');
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      return Future.error('위치 권한이 영구적으로 거부되었습니다.');
+    }
+
+    return await Geolocator.getCurrentPosition();
+  }
+
+  void _moveToCurrentLocation() async {
+    try {
+      final Position position = await _determinePosition();
+      final LatLng userLocation = LatLng(position.latitude, position.longitude);
+      if (_mapController != null) {
+        _mapController!.animateCamera(CameraUpdate.newCameraPosition(
+          CameraPosition(target: userLocation, zoom: 15),
+        ));
+      }
+    } catch (e) {
+      debugPrint('현재 위치를 가져오는데 실패했습니다: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('현재 위치를 가져오는데 실패했습니다: $e')),
+        );
+      }
+    }
+  }
+
+  void _zoomIn() {
+    if (_mapController != null) {
+      _mapController!.animateCamera(CameraUpdate.zoomIn());
+    }
+  }
+
+  void _zoomOut() {
+    if (_mapController != null) {
+      _mapController!.animateCamera(CameraUpdate.zoomOut());
+    }
+  }
+
+  Future<void> _getPlaceDetailsFromId(String placeId) async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final String url = 'https://maps.googleapis.com/maps/api/place/details/json'
+          '?place_id=$placeId'
+          '&key=$_apiKey'
+          '&language=ko'
+          '&fields=name,formatted_address,geometry,place_id,rating,vicinity';
+
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        
+        if (data['status'] == 'OK') {
+          final place = data['result'];
+          final location = place['geometry']?['location'];
+          
+          if (location != null) {
+            final lat = location['lat']?.toDouble() ?? 35.2271;
+            final lng = location['lng']?.toDouble() ?? 129.0790;
+
+            setState(() {
+              _searchResults = [{
+                'title': place['name'] ?? '',
+                'desc': place['formatted_address'] ?? place['vicinity'] ?? '',
+                'phone': '',
+                'tags': '',
+                'rating': place['rating']?.toString() ?? '4.0',
+                'lat': lat,
+                'lng': lng,
+              }];
+              
+              _markers = {
+                Marker(
+                  markerId: const MarkerId('selected_place'),
+                  position: LatLng(lat, lng),
+                  infoWindow: InfoWindow(
+                    title: place['name'] ?? '',
+                    snippet: place['formatted_address'] ?? place['vicinity'] ?? '',
+                  ),
+                ),
+              };
+            });
+
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (_mapController != null) {
+                _mapController!.animateCamera(
+                  CameraUpdate.newLatLngZoom(LatLng(lat, lng), 16.0),
+                );
+              }
+            });
+          }
+        } else {
+          debugPrint('Place Details API 오류: ${data['status']}');
+        }
+      }
+    } catch (e) {
+      debugPrint('Place Details API 예외 발생: $e');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   void _displaySpecificPlace() {
@@ -84,7 +211,6 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
       };
     });
 
-    // 지도를 선택된 장소로 이동
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_mapController != null) {
         _mapController!.animateCamera(
@@ -101,7 +227,6 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
       _isLoading = true;
     });
 
-    // 현재 위치를 기본값으로 설정 (부산 지역)
     const double defaultLat = 35.2271;
     const double defaultLng = 129.0790;
 
@@ -156,7 +281,6 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
             _markers = markers;
           });
 
-          // 검색 결과가 있으면 첫 번째 결과로 지도 이동
           if (places.isNotEmpty && _mapController != null) {
             _mapController!.animateCamera(
               CameraUpdate.newLatLngZoom(
@@ -252,7 +376,6 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
         );
 
         debugPrint('현 위치 기준 재검색: ${center.latitude}, ${center.longitude}');
-        // 현재 지도 중심점 기준으로 재검색
         _performNearbySearch(center.latitude, center.longitude);
       },
       child: Container(
@@ -355,6 +478,7 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
               zoom: 14,
             ),
             myLocationEnabled: true,
+            myLocationButtonEnabled: false,
             markers: _markers,
           ),
 
@@ -430,57 +554,155 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
             minChildSize: 0.2,
             maxChildSize: 0.9,
             builder: (context, scrollController) {
-              return Container(
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                ),
-                child: ListView(
-                  controller: scrollController,
-                  padding: const EdgeInsets.only(top: 12),
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 60,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: Colors.grey,
-                          borderRadius: BorderRadius.circular(2),
+              return NotificationListener<DraggableScrollableNotification>(
+                onNotification: (notification) {
+                  setState(() {
+                    _sheetPosition = notification.extent;
+                  });
+                  return true;
+                },
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                  ),
+                  child: ListView(
+                    controller: scrollController,
+                    padding: const EdgeInsets.only(top: 12),
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 60,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: Colors.grey,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
                         ),
                       ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          _buildFilterButton('중심점'),
-                          _buildFilterButton('카테고리'),
-                          _buildFilterButton('방문상태'),
-                          _buildFilterButton('평점'),
-                          _buildFilterButton('동반여부'),
-                        ],
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            _buildFilterButton('중심점'),
+                            _buildFilterButton('카테고리'),
+                            _buildFilterButton('방문상태'),
+                            _buildFilterButton('평점'),
+                            _buildFilterButton('동반여부'),
+                          ],
+                        ),
                       ),
-                    ),
-                    if (_isLoading)
-                      const Center(child: CircularProgressIndicator())
-                    else if (_searchResults.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 20),
-                        child: Center(child: Text('검색 결과가 없습니다.')),
-                      )
-                    else
-                      ..._searchResults.map((place) => _buildPlaceCard(
-                            title: place['title'],
-                            desc: place['desc'],
-                            phone: place['phone'],
-                            tags: place['tags'],
-                            rating: place['rating'],
-                          )),
-                  ],
+                      if (_isLoading)
+                        const Center(child: CircularProgressIndicator())
+                      else if (_searchResults.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 20),
+                          child: Center(child: Text('검색 결과가 없습니다.')),
+                        )
+                      else
+                        ..._searchResults.map((place) => _buildPlaceCard(
+                              title: place['title'],
+                              desc: place['desc'],
+                              phone: place['phone'],
+                              tags: place['tags'],
+                              rating: place['rating'],
+                            )),
+                    ],
+                  ),
                 ),
               );
             },
+          ),
+
+          // 지도 컨트롤 버튼들 (시트 위치에 따라 움직임)
+          Positioned(
+            right: 12,
+            bottom: MediaQuery.of(context).size.height * _sheetPosition + 20,
+            child: Column(
+              children: [
+                // 현재 위치 버튼
+                GestureDetector(
+                  onTap: _moveToCurrentLocation,
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withAlpha((0.1 * 255).round()),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: const Center(
+                      child: Icon(
+                        Icons.navigation,
+                        color: Colors.black54,
+                        size: 22,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                // 확대/축소 버튼들 (네모 모양으로 붙여서)
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(4),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withAlpha((0.1 * 255).round()),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      // 확대 버튼
+                      GestureDetector(
+                        onTap: _zoomIn,
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: const BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(color: Colors.grey, width: 0.5),
+                            ),
+                          ),
+                          child: const Center(
+                            child: Icon(
+                              Icons.add,
+                              color: Colors.black54,
+                              size: 22,
+                            ),
+                          ),
+                        ),
+                      ),
+                      // 축소 버튼
+                      GestureDetector(
+                        onTap: _zoomOut,
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          child: const Center(
+                            child: Icon(
+                              Icons.remove,
+                              color: Colors.black54,
+                              size: 22,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
