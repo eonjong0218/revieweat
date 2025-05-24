@@ -12,10 +12,12 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
+  final emailController = TextEditingController();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+
+  String? _emailError;
 
   bool _isLoading = false;
   String? _errorMessage;
@@ -26,7 +28,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   void initState() {
     super.initState();
-    _emailController.addListener(_updateFormState);
+    emailController.addListener(() {
+      _updateFormState();
+      _validateEmail();
+    });
     _usernameController.addListener(_updateFormState);
     _passwordController.addListener(_updateFormState);
     _confirmPasswordController.addListener(_updateFormState);
@@ -34,7 +39,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   void dispose() {
-    _emailController.dispose();
+    emailController.dispose();
     _usernameController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -43,11 +48,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   void _updateFormState() {
     setState(() {
-      _isFormValid = _emailController.text.isNotEmpty &&
+      _isFormValid = emailController.text.isNotEmpty &&
           _usernameController.text.isNotEmpty &&
           _passwordController.text.isNotEmpty &&
           _confirmPasswordController.text.isNotEmpty &&
           _passwordController.text == _confirmPasswordController.text;
+    });
+  }
+
+  // 이메일 유효성 검사 함수
+  void _validateEmail() {
+    setState(() {
+      if (emailController.text.isEmpty) {
+        _emailError = null; // 빈 값이면 오류 메시지 제거
+      } else if (!emailController.text.contains('@')) {
+        _emailError = '이메일 형식이 올바르지 않습니다.';
+      } else {
+        _emailError = null; // 유효한 이메일이면 오류 메시지 제거
+      }
     });
   }
 
@@ -63,7 +81,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           Uri.parse('http://10.0.2.2:8000/register'),
           headers: {'Content-Type': 'application/json'},
           body: json.encode({
-            'email': _emailController.text,
+            'email': emailController.text,
             'username': _usernameController.text,
             'password': _passwordController.text,
           }),
@@ -149,12 +167,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 32),
 
                   TextFormField(
-                    controller: _emailController,
+                    controller: emailController,
                     keyboardType: TextInputType.emailAddress,
-                    decoration: _buildInputDecoration('Enter Email'),
+                    decoration: _buildInputDecoration('Enter Email').copyWith(
+                      errorText: _emailError,
+                    ),
                     validator: (value) {
                       if (value == null || value.isEmpty) return '이메일을 입력해주세요';
-                      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) return '유효한 이메일 주소를 입력해주세요';
+                      if (_emailError != null) return _emailError;
                       return null;
                     },
                   ),
