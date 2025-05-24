@@ -346,67 +346,107 @@ class _SearchScreenState extends State<SearchScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Container(
-          height: 40,
-          decoration: BoxDecoration(
-            color: Colors.grey[100],
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: TextField(
-            controller: _searchController,
-            onChanged: _onSearchChanged,
-            onSubmitted: _onSearchSubmitted,
-            textInputAction: TextInputAction.search,
-            keyboardType: TextInputType.text,
-            autofocus: true,
-            decoration: const InputDecoration(
-              hintText: '검색어를 입력하세요',
-              prefixIcon: Icon(Icons.search, color: Colors.grey),
-              border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // 상단 검색 바 영역 (뒤로가기 버튼을 오른쪽으로 이동)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                height: 48,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withAlpha((0.12 * 255).round()),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.search, color: Colors.grey),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        onChanged: _onSearchChanged,
+                        onSubmitted: _onSearchSubmitted,
+                        textInputAction: TextInputAction.search,
+                        autofocus: true,
+                        decoration: const InputDecoration(
+                          hintText: '장소 및 주소 검색',
+                          hintStyle: TextStyle(color: Colors.grey),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                        style: const TextStyle(fontSize: 15),
+                      ),
+                    ),
+                    Icon(Icons.mic, color: Colors.grey[600]),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: const Icon(
+                        Icons.arrow_back,
+                        color: Colors.black87,
+                        size: 22,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ),
+            
+            // 메인 콘텐츠 영역
+            Expanded(
+              child: _searchController.text.isNotEmpty && _places.isNotEmpty
+                  ? _buildPlacesList()
+                  : _searchController.text.isNotEmpty && _isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : _buildRecentSearches(),
+            ),
+          ],
         ),
-      ),
-      body: Column(
-        children: [
-          if (_searchController.text.isNotEmpty && _places.isNotEmpty)
-            Expanded(child: _buildPlacesList())
-          else if (_searchController.text.isNotEmpty && _isLoading)
-            const Expanded(
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else
-            Expanded(child: _buildRecentSearches()),
-        ],
       ),
     );
   }
 
   Widget _buildPlacesList() {
-    return ListView.builder(
+    return ListView.separated(
+      padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: _places.length,
+      separatorBuilder: (context, index) => const Divider(height: 1, indent: 56),
       itemBuilder: (context, index) {
         final place = _places[index];
         final mainText = place['structured_formatting']?['main_text'] ?? '';
         final secondaryText = place['structured_formatting']?['secondary_text'] ?? '';
 
         return ListTile(
-          leading: const Icon(Icons.location_on, color: Colors.red),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+          leading: Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: Colors.red[50],
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.location_on, color: Colors.red, size: 20),
+          ),
           title: Text(
             mainText,
-            style: const TextStyle(fontWeight: FontWeight.w500),
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           subtitle: Text(
             secondaryText,
-            style: const TextStyle(color: Colors.grey),
+            style: const TextStyle(color: Colors.grey, fontSize: 13),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           onTap: () => _onPlaceTap(place),
         );
@@ -418,28 +458,39 @@ class _SearchScreenState extends State<SearchScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                '최근 검색',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+        // 최근 검색 헤더
+        if (_recentSearches.isNotEmpty)
+          Container(
+            padding: const EdgeInsets.fromLTRB(20, 20, 16, 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  '최근 검색',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
                 ),
-              ),
-              TextButton(
-                onPressed: _showDeleteAllConfirmDialog,
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.red,
+                TextButton(
+                  onPressed: _showDeleteAllConfirmDialog,
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.grey[600],
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text(
+                    '전체 삭제',
+                    style: TextStyle(fontSize: 13),
+                  ),
                 ),
-                child: const Text('전체 삭제'),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
+        
+        // 검색 기록 리스트
         Expanded(child: _buildRecentSearchList()),
       ],
     );
@@ -447,18 +498,31 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Widget _buildRecentSearchList() {
     if (_recentSearches.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              '최근 검색 기록이 없습니다.',
-              style: TextStyle(color: Colors.grey),
+            Icon(
+              Icons.search,
+              size: 64,
+              color: Colors.grey[300],
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 16),
             Text(
-              '검색어를 입력하거나 장소를 선택해보세요.',
-              style: TextStyle(color: Colors.grey, fontSize: 12),
+              '최근 검색 기록이 없습니다',
+              style: TextStyle(
+                color: Colors.grey[500],
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '장소나 주소를 검색해보세요',
+              style: TextStyle(
+                color: Colors.grey[400],
+                fontSize: 14,
+              ),
             ),
           ],
         ),
@@ -466,7 +530,9 @@ class _SearchScreenState extends State<SearchScreen> {
     }
 
     return ListView.separated(
+      padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: _recentSearches.length,
+      separatorBuilder: (context, index) => const Divider(height: 1, indent: 56),
       itemBuilder: (context, index) {
         final searchItem = _recentSearches[index];
         final isPlace = searchItem['is_place'] == true;
@@ -474,33 +540,36 @@ class _SearchScreenState extends State<SearchScreen> {
             ? (searchItem['name'] ?? searchItem['query']) 
             : searchItem['query'];
         
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 22),
-          child: ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(
-              isPlace ? Icons.location_on : Icons.search,
-              size: 20,
-              color: isPlace ? Colors.red : Colors.grey,
+        return ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+          leading: Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: isPlace ? Colors.red[50] : Colors.grey[100],
+              shape: BoxShape.circle,
             ),
-            title: Text(
-              displayText,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
-            ),
-            onTap: () => _onRecentSearchTap(searchItem),
-            trailing: IconButton(
-              icon: const Icon(Icons.clear, size: 18, color: Colors.grey),
-              onPressed: () {
-                _deleteSearchHistory(searchItem['id'], index);
-              },
+            child: Icon(
+              isPlace ? Icons.location_on : Icons.history,
+              color: isPlace ? Colors.red : Colors.grey[600],
+              size: 18,
             ),
           ),
+          title: Text(
+            displayText,
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          trailing: IconButton(
+            icon: Icon(Icons.close, size: 18, color: Colors.grey[400]),
+            onPressed: () => _deleteSearchHistory(searchItem['id'], index),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+          ),
+          onTap: () => _onRecentSearchTap(searchItem),
         );
       },
-      separatorBuilder: (context, index) => const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 22),
-        child: Divider(color: Colors.grey, height: 1),
-      ),
     );
   }
 }
