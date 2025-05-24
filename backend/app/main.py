@@ -5,7 +5,7 @@ from datetime import timedelta
 
 from . import models, schemas, crud, database, auth, dependencies
 
-# 테이블 생성
+# DB 테이블 생성
 models.Base.metadata.create_all(bind=database.engine)
 
 app = FastAPI()
@@ -29,7 +29,10 @@ def register(user: schemas.UserCreate, db: Session = Depends(dependencies.get_db
         raise HTTPException(status_code=500, detail=f"서버 오류: {str(e)}")
 
 @app.post("/token", response_model=schemas.Token)
-def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(dependencies.get_db)):
+def login_for_access_token(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(dependencies.get_db),
+):
     user = crud.get_user_by_email(db, form_data.username)
     if not user or not crud.verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
@@ -40,7 +43,7 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
     access_token_expires = timedelta(minutes=auth.config.settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = auth.create_access_token(
         data={"sub": user.email},
-        expires_delta=access_token_expires
+        expires_delta=access_token_expires,
     )
     return {"access_token": access_token, "token_type": "bearer"}
 

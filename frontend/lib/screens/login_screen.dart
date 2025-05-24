@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'package:flutter/foundation.dart' show kDebugMode;
 
 class LoginScreen extends StatefulWidget {
@@ -12,11 +14,11 @@ class _LoginScreenState extends State<LoginScreen> {
   final emailController = TextEditingController(); // 이메일 입력 컨트롤러
   final passwordController = TextEditingController(); // 비밀번호 입력 컨트롤러
   bool _isFormValid = false; // 폼 유효성 상태 추적
-  
+
   // 포커스 노드 추가
   final _emailFocusNode = FocusNode();
   final _passwordFocusNode = FocusNode();
-  
+
   // 오류 메시지 상태 관리
   String? _emailError;
   String? _passwordError;
@@ -29,19 +31,19 @@ class _LoginScreenState extends State<LoginScreen> {
       _updateFormState();
       _validateEmail(); // 이메일 값이 변경될 때마다 유효성 검사
     });
-    
+
     passwordController.addListener(() {
       _updateFormState();
       _validatePassword(); // 비밀번호 값이 변경될 때마다 유효성 검사
     });
-    
+
     // 포커스 리스너 추가
     _emailFocusNode.addListener(() {
       if (!_emailFocusNode.hasFocus && emailController.text.isNotEmpty) {
         _validateEmail(); // 포커스를 잃고 텍스트가 비어있지 않을 때 검증
       }
     });
-    
+
     _passwordFocusNode.addListener(() {
       if (!_passwordFocusNode.hasFocus && passwordController.text.isNotEmpty) {
         _validatePassword(); // 포커스를 잃고 텍스트가 비어있지 않을 때 검증
@@ -80,37 +82,64 @@ class _LoginScreenState extends State<LoginScreen> {
     // 컨트롤러 해제
     emailController.dispose();
     passwordController.dispose();
-    
+
     // 포커스 노드 해제
     _emailFocusNode.dispose();
     _passwordFocusNode.dispose();
-    
+
     super.dispose();
   }
 
   // 폼 상태 업데이트 함수
   void _updateFormState() {
     setState(() {
-      _isFormValid = emailController.text.isNotEmpty && 
-                     emailController.text.contains('@') &&
-                     passwordController.text.length >= 8;
+      _isFormValid = emailController.text.isNotEmpty &&
+          emailController.text.contains('@') &&
+          passwordController.text.length >= 8;
     });
   }
 
-  // 로그인 처리 함수
-  void _handleLogin() {
-  _validateEmail();
-  _validatePassword();
+  // 로그인 처리 함수 (서버 연동 추가)
+  void _handleLogin() async {
+    _validateEmail();
+    _validatePassword();
 
-  if (_emailError == null && _passwordError == null && _isFormValid) {
-    if (kDebugMode) {
-      print('로그인 성공: ${emailController.text}');
+    if (_emailError == null && _passwordError == null && _isFormValid) {
+      try {
+        final response = await http.post(
+          Uri.parse('http://10.0.2.2:8000/token'), // FastAPI 로그인 엔드포인트
+          headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+          body: {
+            'username': emailController.text,
+            'password': passwordController.text,
+          },
+        );
+
+        if (response.statusCode == 200) {
+          final data = json.decode(response.body);
+          final token = data['access_token']; // 백엔드에서 받은 토큰
+
+          if (kDebugMode) {
+            print('로그인 성공: $token');
+          }
+
+          // TODO: 토큰 저장 및 상태 관리 필요
+
+          if (!mounted) return;
+          Navigator.pushReplacementNamed(context, '/home');
+        } else {
+          final errorData = json.decode(response.body);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(errorData['detail'] ?? '로그인 실패')),
+          );
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('서버 오류: $e')),
+        );
+      }
     }
-
-    Navigator.pushReplacementNamed(context, '/home');
   }
-}
-
 
   @override
   Widget build(BuildContext context) {
@@ -132,7 +161,8 @@ class _LoginScreenState extends State<LoginScreen> {
               // 이메일 라벨
               const Text(
                 '이메일',
-                style: TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500),
+                style:
+                    TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500),
               ),
               const SizedBox(height: 6),
 
@@ -155,7 +185,8 @@ class _LoginScreenState extends State<LoginScreen> {
               // 비밀번호 라벨
               const Text(
                 '비밀번호',
-                style: TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500),
+                style:
+                    TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500),
               ),
               const SizedBox(height: 6),
 
@@ -241,7 +272,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     icon: Image.asset('assets/images/kakao_icon.png', height: 20),
                     label: const Text(
                       '카카오 로그인',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                      style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
                     ),
                   ),
                 ],
