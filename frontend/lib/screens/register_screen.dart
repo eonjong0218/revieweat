@@ -30,23 +30,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   void initState() {
     super.initState();
-
-    emailController.addListener(() {
-      _updateFormState();
-      _validateEmail();
-    });
+    emailController.addListener(_validateEmail);
     _usernameController.addListener(_updateFormState);
-
     passwordController.addListener(() {
-      _updateFormState();
       _validatePassword();
-      _validateConfirmPassword();  // 비밀번호 변경 시 확인 비밀번호도 검사
-    });
-
-    _confirmPasswordController.addListener(() {
-      _updateFormState();
       _validateConfirmPassword();
     });
+    _confirmPasswordController.addListener(_validateConfirmPassword);
   }
 
   @override
@@ -59,54 +49,53 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   void _updateFormState() {
+    final isValid = emailController.text.isNotEmpty &&
+        _usernameController.text.isNotEmpty &&
+        passwordController.text.isNotEmpty &&
+        _confirmPasswordController.text.isNotEmpty &&
+        _passwordError == null &&
+        _confirmPasswordError == null &&
+        _emailError == null;
+
     setState(() {
-      _isFormValid = emailController.text.isNotEmpty &&
-          _usernameController.text.isNotEmpty &&
-          passwordController.text.isNotEmpty &&
-          _confirmPasswordController.text.isNotEmpty &&
-          _passwordError == null &&
-          _confirmPasswordError == null &&
-          _emailError == null;
+      _isFormValid = isValid;
     });
   }
 
   // 이메일 유효성 검사 함수
   void _validateEmail() {
-    setState(() {
-      if (emailController.text.isEmpty) {
-        _emailError = null;
-      } else if (!emailController.text.contains('@')) {
-        _emailError = '이메일 형식이 올바르지 않습니다.';
-      } else {
-        _emailError = null;
-      }
-    });
+    if (emailController.text.isEmpty) {
+      _emailError = null;
+    } else if (!emailController.text.contains('@')) {
+      _emailError = '이메일 형식이 올바르지 않습니다.';
+    } else {
+      _emailError = null;
+    }
+    _updateFormState();
   }
 
   // 비밀번호 유효성 검사 함수
   void _validatePassword() {
-    setState(() {
-      if (passwordController.text.isEmpty) {
-        _passwordError = null;
-      } else if (passwordController.text.length < 8) {
-        _passwordError = '비밀번호는 8자 이상이어야 합니다.';
-      } else {
-        _passwordError = null;
-      }
-    });
+    if (passwordController.text.isEmpty) {
+      _passwordError = null;
+    } else if (passwordController.text.length < 8) {
+      _passwordError = '비밀번호는 8자 이상이어야 합니다.';
+    } else {
+      _passwordError = null;
+    }
+    _updateFormState();
   }
 
-  // 비밀번호 확인 유효성 검사 함수
+  // 비밀번호 확인 일치 검사 함수
   void _validateConfirmPassword() {
-    setState(() {
-      if (_confirmPasswordController.text.isEmpty) {
-        _confirmPasswordError = null;
-      } else if (_confirmPasswordController.text != passwordController.text) {
-        _confirmPasswordError = '비밀번호가 일치하지 않습니다';
-      } else {
-        _confirmPasswordError = null;
-      }
-    });
+    if (_confirmPasswordController.text.isEmpty) {
+      _confirmPasswordError = null;
+    } else if (_confirmPasswordController.text != passwordController.text) {
+      _confirmPasswordError = '비밀번호가 일치하지 않습니다';
+    } else {
+      _confirmPasswordError = null;
+    }
+    _updateFormState();
   }
 
   Future<void> _register() async {
@@ -234,9 +223,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       setState(() {
                         _obscurePassword = !_obscurePassword;
                       });
-                    }).copyWith(
-                      errorText: _passwordError,
-                    ),
+                    }),
                     validator: (value) {
                       if (value == null || value.isEmpty) return '비밀번호를 입력해주세요';
                       if (_passwordError != null) return _passwordError;
@@ -252,12 +239,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       setState(() {
                         _obscureConfirmPassword = !_obscureConfirmPassword;
                       });
-                    }).copyWith(
-                      errorText: _confirmPasswordError,
-                    ),
+                    }),
                     validator: (value) {
                       if (value == null || value.isEmpty) return '비밀번호를 다시 입력해주세요';
-                      if (value != passwordController.text) return '비밀번호가 일치하지 않습니다';
+                      if (_confirmPasswordError != null) return _confirmPasswordError;
                       return null;
                     },
                   ),
