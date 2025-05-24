@@ -60,7 +60,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       try {
         final response = await http.post(
-          Uri.parse('http://10.0.2.2:8000/register'), // Android 에뮬레이터용
+          Uri.parse('http://10.0.2.2:8000/register'),
           headers: {'Content-Type': 'application/json'},
           body: json.encode({
             'email': _emailController.text,
@@ -96,52 +96,58 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-@override
-Widget build(BuildContext context) {
-  return Scaffold(
-    backgroundColor: Colors.white,
-    body: SafeArea(
-      child: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 80),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  '회원가입',
-                  style: TextStyle(fontSize: 25, fontWeight: FontWeight.w900),
-                ),
-                const SizedBox(height: 18),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      '이미 계정이 있으신가요?',
-                      style: TextStyle(fontSize: 14, color: Colors.black),
-                    ),
-                    const SizedBox(height: 4), // 두 문장 사이 간격
-                    RichText(
-                      text: const TextSpan(
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 80),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    '회원가입',
+                    style: TextStyle(fontSize: 25, fontWeight: FontWeight.w900),
+                  ),
+                  const SizedBox(height: 18),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        '이미 계정이 있으신가요?',
                         style: TextStyle(fontSize: 14, color: Colors.black),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
                         children: [
-                          TextSpan(text: '여기로 '),
-                          TextSpan(
-                            text: '로그인하세요!',
-                            style: TextStyle(
-                              color: Color.fromARGB(255, 61, 2, 237),
-                              fontWeight: FontWeight.bold,
+                          const Text('여기로 ', style: TextStyle(fontSize: 14)),
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => const LoginScreen()),
+                              );
+                            },
+                            child: const Text(
+                              '로그인하세요!',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Color.fromARGB(255, 61, 2, 237),
+                                fontWeight: FontWeight.bold,
+                                decoration: TextDecoration.none,
+                              ),
                             ),
                           ),
                         ],
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 32),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
 
-                  // 이메일 입력
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
@@ -154,7 +160,6 @@ Widget build(BuildContext context) {
                   ),
                   const SizedBox(height: 16),
 
-                  // 사용자 이름 입력
                   TextFormField(
                     controller: _usernameController,
                     decoration: _buildInputDecoration('Create User name'),
@@ -162,7 +167,6 @@ Widget build(BuildContext context) {
                   ),
                   const SizedBox(height: 16),
 
-                  // 비밀번호 입력
                   TextFormField(
                     controller: _passwordController,
                     obscureText: _obscurePassword,
@@ -179,7 +183,6 @@ Widget build(BuildContext context) {
                   ),
                   const SizedBox(height: 16),
 
-                  // 비밀번호 확인 입력
                   TextFormField(
                     controller: _confirmPasswordController,
                     obscureText: _obscureConfirmPassword,
@@ -196,14 +199,12 @@ Widget build(BuildContext context) {
                   ),
                   const SizedBox(height: 18),
 
-                  // 에러 메시지 표시
                   if (_errorMessage != null)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 16),
                       child: Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
                     ),
 
-                  // 회원가입 버튼
                   SizedBox(
                     width: double.infinity,
                     height: 50,
@@ -220,7 +221,6 @@ Widget build(BuildContext context) {
                           : const Text('등록', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                     ),
                   ),
-
                   const SizedBox(height: 16),
                 ],
               ),
@@ -230,7 +230,7 @@ Widget build(BuildContext context) {
       ),
     );
   }
-  // 공통 인풋 데코레이션 함수
+
   InputDecoration _buildInputDecoration(String hint) {
     return InputDecoration(
       hintText: hint,
@@ -242,7 +242,6 @@ Widget build(BuildContext context) {
     );
   }
 
-  // 비밀번호 입력 필드용 데코레이션 함수
   InputDecoration _buildPasswordInputDecoration(String hint, bool obscure, VoidCallback toggle) {
     return _buildInputDecoration(hint).copyWith(
       suffixIcon: IconButton(
