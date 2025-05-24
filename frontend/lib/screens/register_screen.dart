@@ -111,55 +111,43 @@ class _RegisterScreenState extends State<RegisterScreen> {
         _usernameError = null;
       });
 
-      try {
-        final response = await http.post(
-          Uri.parse('http://192.168.0.6:8000/register'), // URL 통일
-          headers: {'Content-Type': 'application/json'},
-          body: json.encode({
-            'email': emailController.text,
-            'username': _usernameController.text,
-            'password': passwordController.text,
-          }),
+      final response = await http.post(
+        Uri.parse('http://192.168.0.6:8000/register'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'email': emailController.text,
+          'username': _usernameController.text,
+          'password': passwordController.text,
+        }),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('회원가입 성공! 로그인해주세요.')),
         );
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+        );
+      } else {
+        final errorData = json.decode(response.body);
+        final detail = errorData['detail'] ?? '회원가입에 실패했습니다.';
 
-        print('회원가입 응답 상태: ${response.statusCode}');
-        print('회원가입 응답 내용: ${response.body}');
-
-        if (response.statusCode == 200 || response.statusCode == 201) {
-          if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('회원가입 성공! 로그인해주세요.')),
-          );
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const LoginScreen()),
-          );
-        } else {
-          final errorData = json.decode(response.body);
-          final detail = errorData['detail'] ?? '회원가입에 실패했습니다.';
-
-          print('회원가입 실패: $detail');
-
-          setState(() {
-            if (detail.contains('이메일')) {
-              _emailError = detail;
-            } else if (detail.contains('사용자 이름')) {
-              _usernameError = detail;
-            } else {
-              _errorMessage = detail;
-            }
-          });
-        }
-      } catch (e) {
-        print('회원가입 오류: $e');
         setState(() {
-          _errorMessage = '서버 연결 오류: $e';
-        });
-      } finally {
-        setState(() {
-          _isLoading = false;
+          if (detail.contains('이메일')) {
+            _emailError = detail;
+          } else if (detail.contains('사용자 이름')) {
+            _usernameError = detail;
+          } else {
+            _errorMessage = detail;
+          }
         });
       }
+
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
