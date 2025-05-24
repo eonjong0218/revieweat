@@ -79,7 +79,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   void _validatePassword() {
     setState(() {
       if (passwordController.text.isEmpty) {
-        _passwordError = null;  // 비어있으면 에러 메시지 없음
+        _passwordError = null;
       } else if (passwordController.text.length < 8) {
         _passwordError = '비밀번호는 8자 이상이어야 합니다.';
       } else {
@@ -113,7 +113,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       try {
         final response = await http.post(
-          Uri.parse('http://10.0.2.2:8000/register'),
+          Uri.parse('http://192.168.0.6:8000/register'), // URL 통일
           headers: {'Content-Type': 'application/json'},
           body: json.encode({
             'email': emailController.text,
@@ -121,6 +121,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
             'password': passwordController.text,
           }),
         );
+
+        print('회원가입 응답 상태: ${response.statusCode}');
+        print('회원가입 응답 내용: ${response.body}');
 
         if (response.statusCode == 200 || response.statusCode == 201) {
           if (!mounted) return;
@@ -135,6 +138,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
           final errorData = json.decode(response.body);
           final detail = errorData['detail'] ?? '회원가입에 실패했습니다.';
 
+          print('회원가입 실패: $detail');
+
           setState(() {
             if (detail.contains('이메일')) {
               _emailError = detail;
@@ -146,6 +151,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           });
         }
       } catch (e) {
+        print('회원가입 오류: $e');
         setState(() {
           _errorMessage = '서버 연결 오류: $e';
         });
@@ -209,6 +215,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   const SizedBox(height: 32),
 
+                  // 이메일 입력 필드
                   TextFormField(
                     controller: emailController,
                     keyboardType: TextInputType.emailAddress,
@@ -225,6 +232,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   const SizedBox(height: 16),
 
+                  // 사용자명 입력 필드
                   TextFormField(
                     controller: _usernameController,
                     decoration: _buildInputDecoration('Create User name').copyWith(
@@ -240,6 +248,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   const SizedBox(height: 16),
 
+                  // 비밀번호 입력 필드
                   TextFormField(
                     controller: passwordController,
                     obscureText: _obscurePassword,
@@ -260,6 +269,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   const SizedBox(height: 16),
 
+                  // 비밀번호 확인 입력 필드
                   TextFormField(
                     controller: _confirmPasswordController,
                     obscureText: _obscureConfirmPassword,
@@ -280,12 +290,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   const SizedBox(height: 18),
 
+                  // 에러 메시지 표시
                   if (_errorMessage != null)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 16),
                       child: Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
                     ),
 
+                  // 회원가입 버튼
                   SizedBox(
                     width: double.infinity,
                     height: 50,
@@ -312,6 +324,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
+  // 기본 입력 필드 데코레이션
   InputDecoration _buildInputDecoration(String hint) {
     return InputDecoration(
       hintText: hint,
@@ -323,6 +336,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
+  // 비밀번호 입력 필드 데코레이션 (보이기/숨기기 버튼 포함)
   InputDecoration _buildPasswordInputDecoration(String hint, bool obscure, VoidCallback toggle) {
     return _buildInputDecoration(hint).copyWith(
       suffixIcon: IconButton(
