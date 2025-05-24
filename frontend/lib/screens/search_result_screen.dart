@@ -1,10 +1,20 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'home_screen.dart'; // home_screen 경로에 맞게 조정하세요
+import 'package:http/http.dart' as http;
+import 'home_screen.dart';
 
 class SearchResultScreen extends StatefulWidget {
   final String initialQuery;
-  const SearchResultScreen({super.key, required this.initialQuery});
+  final bool isSpecificPlace;
+  final Map<String, dynamic>? placeDetails;
+
+  const SearchResultScreen({
+    super.key, 
+    required this.initialQuery,
+    this.isSpecificPlace = false,
+    this.placeDetails,
+  });
 
   @override
   State<SearchResultScreen> createState() => _SearchResultScreenState();
@@ -12,12 +22,26 @@ class SearchResultScreen extends StatefulWidget {
 
 class _SearchResultScreenState extends State<SearchResultScreen> {
   late TextEditingController _searchController;
-  late GoogleMapController _mapController;
+  GoogleMapController? _mapController;
+  Set<Marker> _markers = {};
+
+  List<Map<String, dynamic>> _searchResults = [];
+  bool _isLoading = false;
+
+  static const String _apiKey = 'AIzaSyAufgjB4H_wW06l9FtmFz8wPTiq15ALKuU'; // 실제 키로 교체
 
   @override
   void initState() {
     super.initState();
     _searchController = TextEditingController(text: widget.initialQuery);
+    
+    if (widget.isSpecificPlace && widget.placeDetails != null) {
+      // 특정 장소인 경우 해당 장소만 표시
+      _displaySpecificPlace();
+    } else {
+      // 일반 검색인 경우 현재 위치 기준으로 검색
+      _performLocationBasedSearch(widget.initialQuery);
+    }
   }
 
   @override
@@ -30,11 +54,176 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
     _mapController = controller;
   }
 
+  void _displaySpecificPlace() {
+    if (widget.placeDetails == null) return;
+
+    final place = widget.placeDetails!;
+    final lat = place['lat']?.toDouble() ?? 35.2271;
+    final lng = place['lng']?.toDouble() ?? 129.0790;
+
+    setState(() {
+      _searchResults = [{
+        'title': place['name'] ?? '',
+        'desc': place['address'] ?? '',
+        'phone': '',
+        'tags': '',
+        'rating': '4.0',
+        'lat': lat,
+        'lng': lng,
+      }];
+      
+      _markers = {
+        Marker(
+          markerId: const MarkerId('selected_place'),
+          position: LatLng(lat, lng),
+          infoWindow: InfoWindow(
+            title: place['name'] ?? '',
+            snippet: place['address'] ?? '',
+          ),
+        ),
+      };
+    });
+
+    // 지도를 선택된 장소로 이동
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_mapController != null) {
+        _mapController!.animateCamera(
+          CameraUpdate.newLatLngZoom(LatLng(lat, lng), 16.0),
+        );
+      }
+    });
+  }
+
+  Future<void> _performLocationBasedSearch(String query) async {
+    if (query.isEmpty) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    // 현재 위치를 기본값으로 설정 (부산 지역)
+    const double defaultLat = 35.2271;
+    const double defaultLng = 129.0790;
+
+    final url =
+        'https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=$defaultLat,$defaultLng&radius=5000&keyword=${Uri.encodeComponent(query)}&key=$_apiKey&language=ko';
+
+    try {
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        if (data['status'] == 'OK') {
+          final results = data['results'] as List;
+
+          final places = <Map<String, dynamic>>[];
+          final markers = <Marker>{};
+
+          for (int i = 0; i < results.length; i++) {
+            final place = results[i];
+            final location = place['geometry']?['location'];
+            
+            if (location != null) {
+              final lat = location['lat']?.toDouble() ?? 0.0;
+              final lng = location['lng']?.toDouble() ?? 0.0;
+              
+              places.add({
+                'title': place['name'] ?? '',
+                'desc': place['vicinity'] ?? '',
+                'phone': '',
+                'tags': _getPlaceTypes(place['types']),
+                'rating': place['rating']?.toString() ?? '4.0',
+                'lat': lat,
+                'lng': lng,
+              });
+
+              markers.add(
+                Marker(
+                  markerId: MarkerId('place_$i'),
+                  position: LatLng(lat, lng),
+                  infoWindow: InfoWindow(
+                    title: place['name'] ?? '',
+                    snippet: place['vicinity'] ?? '',
+                  ),
+                ),
+              );
+            }
+          }
+
+          setState(() {
+            _searchResults = places;
+            _markers = markers;
+          });
+
+          // 검색 결과가 있으면 첫 번째 결과로 지도 이동
+          if (places.isNotEmpty && _mapController != null) {
+            _mapController!.animateCamera(
+              CameraUpdate.newLatLngZoom(
+                LatLng(defaultLat, defaultLng),
+                12.0,
+              ),
+            );
+          }
+        } else {
+          debugPrint('Places API 오류: ${data['status']}');
+          setState(() {
+            _searchResults = [];
+            _markers = {};
+          });
+        }
+      } else {
+        debugPrint('HTTP 요청 실패: ${response.statusCode}');
+        setState(() {
+          _searchResults = [];
+          _markers = {};
+        });
+      }
+    } catch (e) {
+      debugPrint('예외 발생: $e');
+      setState(() {
+        _searchResults = [];
+        _markers = {};
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  String _getPlaceTypes(List<dynamic>? types) {
+    if (types == null || types.isEmpty) return '';
+    
+    final typeMap = {
+      'restaurant': '음식점',
+      'cafe': '카페',
+      'tourist_attraction': '관광지',
+      'shopping_mall': '쇼핑몰',
+      'hospital': '병원',
+      'school': '학교',
+      'gas_station': '주유소',
+      'bank': '은행',
+      'pharmacy': '약국',
+      'convenience_store': '편의점',
+    };
+    
+    for (final type in types) {
+      if (typeMap.containsKey(type)) {
+        return typeMap[type]!;
+      }
+    }
+    
+    return '';
+  }
+
   Widget _buildFilterButton(String label) {
     return Padding(
       padding: const EdgeInsets.only(right: 4),
       child: GestureDetector(
-        onTap: () {},
+        onTap: () {
+          debugPrint('필터 선택: $label');
+        },
         child: Container(
           width: 68,
           height: 24,
@@ -44,11 +233,7 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
             borderRadius: BorderRadius.circular(12),
           ),
           alignment: Alignment.center,
-          child: Text(
-            label,
-            style: const TextStyle(fontSize: 10),
-            textAlign: TextAlign.center,
-          ),
+          child: Text(label, style: const TextStyle(fontSize: 10)),
         ),
       ),
     );
@@ -57,14 +242,18 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
   Widget _buildRefreshLocationButton() {
     return GestureDetector(
       onTap: () async {
-        final center = await _mapController.getLatLng(
+        if (_mapController == null) return;
+
+        final center = await _mapController!.getLatLng(
           ScreenCoordinate(
             x: MediaQuery.of(context).size.width ~/ 2,
             y: MediaQuery.of(context).size.height ~/ 2,
           ),
         );
-        // TODO: center 기준 재검색 로직 구현
-        print('현 위치 기준 재검색: ${center.latitude}, ${center.longitude}');
+
+        debugPrint('현 위치 기준 재검색: ${center.latitude}, ${center.longitude}');
+        // 현재 지도 중심점 기준으로 재검색
+        _performNearbySearch(center.latitude, center.longitude);
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -72,7 +261,7 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: Colors.grey.shade300),
-          boxShadow: [
+          boxShadow: const [
             BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 1)),
           ],
         ),
@@ -88,6 +277,72 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
     );
   }
 
+  Future<void> _performNearbySearch(double lat, double lng) async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    final url =
+        'https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=$lat,$lng&radius=2000&keyword=${Uri.encodeComponent(_searchController.text)}&key=$_apiKey&language=ko';
+
+    try {
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        if (data['status'] == 'OK') {
+          final results = data['results'] as List;
+
+          final places = <Map<String, dynamic>>[];
+          final markers = <Marker>{};
+
+          for (int i = 0; i < results.length; i++) {
+            final place = results[i];
+            final location = place['geometry']?['location'];
+            
+            if (location != null) {
+              final placeLat = location['lat']?.toDouble() ?? 0.0;
+              final placeLng = location['lng']?.toDouble() ?? 0.0;
+              
+              places.add({
+                'title': place['name'] ?? '',
+                'desc': place['vicinity'] ?? '',
+                'phone': '',
+                'tags': _getPlaceTypes(place['types']),
+                'rating': place['rating']?.toString() ?? '4.0',
+                'lat': placeLat,
+                'lng': placeLng,
+              });
+
+              markers.add(
+                Marker(
+                  markerId: MarkerId('nearby_$i'),
+                  position: LatLng(placeLat, placeLng),
+                  infoWindow: InfoWindow(
+                    title: place['name'] ?? '',
+                    snippet: place['vicinity'] ?? '',
+                  ),
+                ),
+              );
+            }
+          }
+
+          setState(() {
+            _searchResults = places;
+            _markers = markers;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Nearby search 예외 발생: $e');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -96,13 +351,14 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
           GoogleMap(
             onMapCreated: _onMapCreated,
             initialCameraPosition: const CameraPosition(
-              target: LatLng(35.2271, 129.0790), // 부산대 근처
+              target: LatLng(35.2271, 129.0790),
               zoom: 14,
             ),
             myLocationEnabled: true,
+            markers: _markers,
           ),
 
-          // 검색바 (search_screen과 동일한 위치)
+          // 검색 바
           Positioned(
             top: 60,
             left: 16,
@@ -114,21 +370,13 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: const [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 6,
-                    offset: Offset(0, 2),
-                  ),
+                  BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 2)),
                 ],
               ),
               child: Row(
                 children: [
                   IconButton(
-                    icon: const Icon(
-                      Icons.arrow_back,
-                      size: 22,
-                      color: Colors.black45,
-                    ),
+                    icon: const Icon(Icons.arrow_back, size: 22, color: Colors.black45),
                     splashRadius: 20,
                     onPressed: () => Navigator.pop(context),
                   ),
@@ -142,24 +390,18 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
                         contentPadding: EdgeInsets.symmetric(vertical: 0),
                       ),
                       style: const TextStyle(fontSize: 13),
-                      onSubmitted: (query) {
-                        print('검색어 제출: $query');
-                        // 재검색 기능 등 추가 가능
-                      },
+                      onSubmitted: (query) => _performLocationBasedSearch(query),
                     ),
                   ),
-
-                  // 아이콘들 Row 수정: 마이크 왼쪽으로 이동 + 오른쪽에 X 아이콘 추가
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Padding(
-                        padding: const EdgeInsets.only(right: 8), // 마이크 왼쪽으로 이동 효과
+                        padding: const EdgeInsets.only(right: 8),
                         child: Icon(Icons.mic, color: Colors.grey[600]),
                       ),
                       GestureDetector(
                         onTap: () {
-                          // home_screen으로 이동 (기존 경로에 맞게 import 조정 필요)
                           Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(builder: (context) => const HomeScreen()),
@@ -174,15 +416,15 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
             ),
           ),
 
-          // 재검색 버튼 - 검색창 바로 아래 중앙에 위치
+          // 재검색 버튼
           Positioned(
-            top: 60 + 48 + 8, // 116
+            top: 116,
             left: 0,
             right: 0,
             child: Center(child: _buildRefreshLocationButton()),
           ),
 
-          // DraggableScrollableSheet - 내부 컨텐츠 위쪽 여백 및 필터 패딩 줄임
+          // 검색 결과 Sheet
           DraggableScrollableSheet(
             initialChildSize: 0.35,
             minChildSize: 0.2,
@@ -195,7 +437,7 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
                 ),
                 child: ListView(
                   controller: scrollController,
-                  padding: const EdgeInsets.only(top: 12), // 상단 여백 줄임
+                  padding: const EdgeInsets.only(top: 12),
                   children: [
                     Center(
                       child: Container(
@@ -208,7 +450,7 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
                       ),
                     ),
                     Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16), // 필터 버튼 패딩 줄임
+                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -220,19 +462,21 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
                         ],
                       ),
                     ),
-                    // 샘플 장소 카드들
-                    _buildPlaceCard(
-                      title: '민들레 식당',
-                      desc: '부산 부산진구 동성로87번길 28 2층',
-                      phone: '0507-1354-0094',
-                      tags: '혼자 방문',
-                    ),
-                    _buildPlaceCard(
-                      title: '부산대학교',
-                      desc: '부산광역시 양산시 물금읍 부산대학교 49 양산캠퍼스',
-                      phone: '051-512-0311',
-                      tags: '미방문',
-                    ),
+                    if (_isLoading)
+                      const Center(child: CircularProgressIndicator())
+                    else if (_searchResults.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 20),
+                        child: Center(child: Text('검색 결과가 없습니다.')),
+                      )
+                    else
+                      ..._searchResults.map((place) => _buildPlaceCard(
+                            title: place['title'],
+                            desc: place['desc'],
+                            phone: place['phone'],
+                            tags: place['tags'],
+                            rating: place['rating'],
+                          )),
                   ],
                 ),
               );
@@ -248,16 +492,23 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
     required String desc,
     required String phone,
     required String tags,
+    required String rating,
   }) {
     return Column(
       children: [
         ListTile(
           title: Row(
             children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+              Flexible(
+                child: Text(title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      overflow: TextOverflow.ellipsis,
+                    )),
+              ),
               const SizedBox(width: 4),
               const Icon(Icons.star, size: 14),
-              const Text(' 4.0', style: TextStyle(fontSize: 12)),
+              Text(' $rating', style: const TextStyle(fontSize: 12)),
               const SizedBox(width: 6),
               Text(tags, style: const TextStyle(fontSize: 12)),
             ],
@@ -266,7 +517,8 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(desc),
-              Text(phone, style: const TextStyle(color: Colors.grey)),
+              if (phone.isNotEmpty)
+                Text(phone, style: const TextStyle(color: Colors.grey)),
             ],
           ),
           trailing: const Icon(Icons.bookmark_border),
