@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter/foundation.dart' show kDebugMode;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -102,7 +103,7 @@ class _LoginScreenState extends State<LoginScreen> {
     });
   }
 
-  // 로그인 처리 함수 (서버 연동 추가)
+  // 로그인 처리 함수 (토큰 저장 기능 추가)
   void _handleLogin() async {
     _validateEmail();
     _validatePassword();
@@ -110,7 +111,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (_emailError == null && _passwordError == null && _isFormValid) {
       try {
         final response = await http.post(
-          Uri.parse('http://10.0.2.2:8000/token'), // FastAPI 로그인 엔드포인트
+          Uri.parse('http://192.168.0.6:8000/token'), // URL 통일
           headers: {'Content-Type': 'application/x-www-form-urlencoded'},
           body: {
             'username': emailController.text,
@@ -126,20 +127,31 @@ class _LoginScreenState extends State<LoginScreen> {
             print('로그인 성공: $token');
           }
 
-          // TODO: 토큰 저장 및 상태 관리 필요
+          // 토큰 저장 기능 추가
+          try {
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('access_token', token);
+            print('토큰 저장 완료: $token');
+          } catch (e) {
+            print('토큰 저장 실패: $e');
+          }
 
           if (!mounted) return;
           Navigator.pushReplacementNamed(context, '/home');
         } else {
           final errorData = json.decode(response.body);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(errorData['detail'] ?? '로그인 실패')),
-          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(errorData['detail'] ?? '로그인 실패')),
+            );
+          }
         }
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('서버 오류: $e')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('서버 오류: $e')),
+          );
+        }
       }
     }
   }
