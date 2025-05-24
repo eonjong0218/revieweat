@@ -450,7 +450,7 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
             markers: _markers,
           ),
 
-          // 검색 바
+          // 검색 바 (원래 디자인 유지)
           Positioned(
             top: 60,
             left: 16,
@@ -508,7 +508,7 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
             ),
           ),
 
-          // 재검색 버튼
+          // 재검색 버튼 (원래 디자인 유지)
           Positioned(
             top: 116,
             left: 0,
@@ -516,7 +516,7 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
             child: Center(child: _buildRefreshLocationButton()),
           ),
 
-          // 검색 결과 Sheet
+          // 검색 결과 Sheet (새로운 디자인)
           DraggableScrollableSheet(
             initialChildSize: 0.35,
             minChildSize: 0.2,
@@ -532,24 +532,28 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
                 child: Container(
                   decoration: const BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
                   ),
                   child: ListView(
                     controller: scrollController,
-                    padding: const EdgeInsets.only(top: 12),
+                    padding: const EdgeInsets.only(top: 16),
                     children: [
+                      // 드래그 핸들
                       Center(
                         child: Container(
-                          width: 60,
-                          height: 4,
+                          width: 70,
+                          height: 5,
                           decoration: BoxDecoration(
-                            color: Colors.grey,
+                            color: Colors.grey[300],
                             borderRadius: BorderRadius.circular(2),
                           ),
                         ),
                       ),
+                      const SizedBox(height: 6),
+                      
+                      // 필터 버튼들 (원래 디자인 유지)
                       Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -561,12 +565,34 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
                           ],
                         ),
                       ),
+                      
+                      // 검색 결과
                       if (_isLoading)
-                        const Center(child: CircularProgressIndicator())
-                      else if (_searchResults.isEmpty)
                         const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 20),
-                          child: Center(child: Text('검색 결과가 없습니다.')),
+                          padding: EdgeInsets.symmetric(vertical: 50),
+                          child: Center(child: CircularProgressIndicator()),
+                        )
+                      else if (_searchResults.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 50),
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.search_off,
+                                size: 48,
+                                color: Colors.grey[400],
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                '검색 결과가 없습니다',
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
                         )
                       else
                         ..._searchResults.map((place) => _buildPlaceCard(
@@ -583,7 +609,7 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
             },
           ),
 
-          // 지도 컨트롤 버튼들 (시트 위치에 따라 움직임)
+          // 지도 컨트롤 버튼들 (원래 디자인 유지)
           Positioned(
             right: 12,
             bottom: MediaQuery.of(context).size.height * _sheetPosition + 20,
@@ -616,7 +642,7 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                // 확대/축소 버튼들 (네모 모양으로 붙여서)
+                // 확대/축소 버튼들
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -684,38 +710,106 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
     required String tags,
     required String rating,
   }) {
-    return Column(
-      children: [
-        ListTile(
-          title: Row(
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade100),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Flexible(
-                child: Text(title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      overflow: TextOverflow.ellipsis,
-                    )),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                    color: Colors.black87,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-              const SizedBox(width: 4),
-              const Icon(Icons.star, size: 14),
-              Text(' $rating', style: const TextStyle(fontSize: 12)),
-              const SizedBox(width: 6),
-              Text(tags, style: const TextStyle(fontSize: 12)),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.orange[50],
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.star, size: 14, color: Colors.orange[600]),
+                    const SizedBox(width: 2),
+                    Text(
+                      rating,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.orange[700],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(Icons.bookmark_border, color: Colors.grey[400], size: 20),
             ],
           ),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(desc),
-              if (phone.isNotEmpty)
-                Text(phone, style: const TextStyle(color: Colors.grey)),
-            ],
+          const SizedBox(height: 8),
+          Text(
+            desc,
+            style: TextStyle(
+              color: Colors.grey[600],
+              fontSize: 14,
+              height: 1.3,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
-          trailing: const Icon(Icons.bookmark_border),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-        ),
-        const Divider(height: 1),
-      ],
+          if (tags.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.blue[50],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                tags,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.blue[700],
+                ),
+              ),
+            ),
+          ],
+          if (phone.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              phone,
+              style: TextStyle(
+                color: Colors.grey[500],
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
