@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
-import 'search_result_screen.dart'; // 경로 맞게 수정하세요
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'dart:async';
+import 'dart:developer';
+
+import 'search_result_screen.dart'; // 결과 페이지 import 추가
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -10,41 +15,176 @@ class SearchScreen extends StatefulWidget {
 
 class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
+  List<dynamic> _places = [];
+  bool _isLoading = false;
+  Timer? _debounce;
 
-  final List<String> _recentSearches = [
-    '부산대학교 양산캠퍼스',
-    '맛있는 식당',
-  ];
+  final List<String> _recentSearches = [];
+  final String _googleApiKey = 'AIzaSyAufgjB4H_wW06l9FtmFz8wPTiq15ALKuU';
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
 
   void _onFilterTap(String label) {
-    // TODO: 필터 버튼 클릭 시 동작 처리
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('필터 "$label" 기능은 준비중입니다.')),
+    );
+  }
+
+  void _onSearchChanged(String input) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+
+    _debounce = Timer(const Duration(milliseconds: 500), () async {
+      if (!mounted) return;
+
+      if (input.trim().isEmpty) {
+        setState(() {
+          _places = [];
+          _isLoading = false;
+        });
+        return;
+      }
+
+      setState(() {
+        _isLoading = true;
+      });
+
+      final encodedInput = Uri.encodeComponent(input);
+      final url = Uri.parse(
+        'https://maps.googleapis.com/maps/api/place/autocomplete/json?input=$encodedInput&key=$_googleApiKey&language=ko&components=country:kr');
+
+      try {
+        final response = await http.get(url);
+        if (response.statusCode == 200) {
+          final json = jsonDecode(response.body);
+          if (json['status'] == 'OK') {
+            setState(() {
+              _places = json['predictions'];
+            });
+          } else {
+            setState(() {
+              _places = [];
+            });
+            log('Places API 오류: ${json['status']}');
+          }
+        } else {
+          log('HTTP 오류: ${response.statusCode}');
+        }
+      } catch (e, stacktrace) {
+        log('예외 발생: $e', stackTrace: stacktrace);
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+      });
+    });
+  }
+
+  Future<Map<String, dynamic>?> _getPlaceDetails(String placeId) async {
+    final url = Uri.parse(
+        'https://maps.googleapis.com/maps/api/place/details/json?place_id=$placeId&key=$_googleApiKey&language=ko&fields=geometry,name,formatted_address');
+
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json['status'] == 'OK') {
+          return json['result'];
+        } else {
+          log('Place Details API 오류: ${json['status']}');
+        }
+      } else {
+        log('HTTP 오류 (place details): ${response.statusCode}');
+      }
+    } catch (e, stacktrace) {
+      log('예외 발생 (place details): $e', stackTrace: stacktrace);
+    }
+    return null;
+  }
+
+  void _onPlaceTap(dynamic place) async {
+    final placeId = place['place_id'];
+    final details = await _getPlaceDetails(placeId);
+
+    if (!mounted) return;
+
+    if (details != null && details['geometry'] != null) {
+      final location = details['geometry']['location'];
+      final lat = location['lat'];
+      final lng = location['lng'];
+      final name = place['description'] ?? details['name'] ?? '';
+      final address = details['formatted_address'] ?? '';
+
+      if (name.isNotEmpty) {
+        setState(() {
+          _addToRecentSearches(name);
+        });
+      }
+
+      // 특정 장소 선택 시 해당 장소만 표시
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SearchResultScreen(
+            initialQuery: details['name'] ?? name,
+            isSpecificPlace: true,
+            placeDetails: {
+              'name': details['name'] ?? name,
+              'address': address,
+              'lat': lat,
+              'lng': lng,
+            },
+          ),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('장소 상세 정보를 불러오지 못했습니다.')),
+      );
+    }
+  }
+
+  void _addToRecentSearches(String query) {
+    _recentSearches.removeWhere((element) => element == query);
+    _recentSearches.insert(0, query);
+    if (_recentSearches.length > 10) {
+      _recentSearches.removeLast();
+    }
   }
 
   void _onSearchSubmitted(String query) {
     if (query.trim().isEmpty) return;
+    
+    setState(() {
+      _addToRecentSearches(query.trim());
+      _places = [];
+    });
 
+    // 일반 검색어로 결과 화면으로 이동 (현재 위치 기준 검색)
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => SearchResultScreen(
-          initialQuery: query,
+          initialQuery: query.trim(),
+          isSpecificPlace: false,
         ),
       ),
     );
   }
 
   void _onRecentSearchTap(String query) {
+    // 최근 검색어 클릭 시 결과 화면으로 이동 (일반 검색)
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => SearchResultScreen(
           initialQuery: query,
+          isSpecificPlace: false,
         ),
       ),
     );
@@ -58,7 +198,6 @@ class _SearchScreenState extends State<SearchScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 상단 검색창
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Container(
@@ -97,7 +236,8 @@ class _SearchScreenState extends State<SearchScreen> {
                           contentPadding: EdgeInsets.symmetric(vertical: 0),
                         ),
                         style: const TextStyle(fontSize: 13),
-                        onSubmitted: _onSearchSubmitted, // 키보드 엔터 처리
+                        onChanged: _onSearchChanged,
+                        onSubmitted: _onSearchSubmitted,
                       ),
                     ),
                     Icon(Icons.mic, color: Colors.grey[600]),
@@ -105,8 +245,6 @@ class _SearchScreenState extends State<SearchScreen> {
                 ),
               ),
             ),
-
-            // 필터 버튼들
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: SingleChildScrollView(
@@ -122,54 +260,82 @@ class _SearchScreenState extends State<SearchScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 40),
-
-            // 최근 검색 타이틀
-            const Padding(
-              padding: EdgeInsets.only(left: 24, right: 16),
-              child: Text(
-                '최근 검색',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
             const SizedBox(height: 10),
-
-            // 최근 검색 리스트
             Expanded(
-              child: ListView.separated(
-                itemCount: _recentSearches.length,
-                itemBuilder: (context, index) => Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 22),
-                  child: ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.location_on_outlined, size: 20),
-                    title: Text(
-                      _recentSearches[index],
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    onTap: () {
-                      _onRecentSearchTap(_recentSearches[index]);
-                    },
-                  ),
-                ),
-                separatorBuilder: (context, index) => const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 22),
-                  child: Divider(
-                    color: Colors.grey,
-                    height: 1,
-                  ),
-                ),
-              ),
+              child: _searchController.text.trim().isEmpty
+                  ? _buildRecentSearchList()
+                  : _buildPlacesList(),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildRecentSearchList() {
+    if (_recentSearches.isEmpty) {
+      return const Center(
+        child: Text(
+          '최근 검색 기록이 없습니다.',
+          style: TextStyle(color: Colors.grey),
+        ),
+      );
+    }
+
+    return ListView.separated(
+      itemCount: _recentSearches.length,
+      itemBuilder: (context, index) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 22),
+        child: ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.history, size: 20),
+          title: Text(
+            _recentSearches[index],
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+          ),
+          onTap: () => _onRecentSearchTap(_recentSearches[index]),
+          trailing: IconButton(
+            icon: const Icon(Icons.clear, size: 18, color: Colors.grey),
+            onPressed: () {
+              setState(() {
+                _recentSearches.removeAt(index);
+              });
+            },
+          ),
+        ),
+      ),
+      separatorBuilder: (context, index) => const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 22),
+        child: Divider(color: Colors.grey, height: 1),
+      ),
+    );
+  }
+
+  Widget _buildPlacesList() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_places.isEmpty) {
+      return const Center(
+        child: Text(
+          '검색 결과가 없습니다.',
+          style: TextStyle(color: Colors.grey),
+        ),
+      );
+    }
+
+    return ListView.separated(
+      itemCount: _places.length,
+      itemBuilder: (context, index) {
+        final place = _places[index];
+        return ListTile(
+          leading: const Icon(Icons.location_on_outlined),
+          title: Text(place['description'] ?? ''),
+          onTap: () => _onPlaceTap(place),
+        );
+      },
+      separatorBuilder: (_, __) => const Divider(),
     );
   }
 }
