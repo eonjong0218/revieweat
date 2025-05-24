@@ -220,11 +220,11 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _buildNavItem(Icons.home_outlined, 'Home', 0),
-            _buildNavItem(Icons.calendar_today_outlined, 'History', 1),
+            _buildNavItem(Icons.home_rounded, 'Home', 0),
+            _buildNavItem(Icons.event_rounded, 'History', 1),
             const SizedBox(width: 48),
-            _buildNavItem(Icons.person_outline, 'Profile', 2),
-            _buildNavItem(Icons.settings_outlined, 'Settings', 3),
+            _buildNavItem(Icons.person_rounded, 'Profile', 2),
+            _buildNavItem(Icons.settings_rounded, 'Settings', 3),
           ],
         ),
       ),
