@@ -11,10 +11,14 @@ RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
 
 # 4. 소스 코드 복사
-COPY ./backend /app
+COPY . /app
 
-# 5. 환경 변수 설정 (예: 포트)
+# 5. wait-for-it.sh 복사 및 실행 권한 부여
+COPY wait-for-it.sh /app/wait-for-it.sh
+RUN chmod +x /app/wait-for-it.sh
+
+# 6. 환경 변수 설정 (예: 포트)
 ENV PORT=8000
 
-# 6. 컨테이너 실행 시 FastAPI 앱 실행
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# 7. 컨테이너 실행 시 DB가 준비될 때까지 대기 후 FastAPI 앱 실행
+CMD ["/app/wait-for-it.sh", "db:5432", "--", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
