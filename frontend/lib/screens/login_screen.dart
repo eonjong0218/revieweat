@@ -23,6 +23,9 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _emailError;
   String? _passwordError;
 
+  // 비밀번호 보이기/숨기기 상태 변수 추가
+  bool _obscurePassword = true;
+
   @override
   void initState() {
     super.initState();
@@ -190,18 +193,29 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 6),
 
-              // 비밀번호 입력 필드
+              // 비밀번호 입력 필드 (보이기/숨기기 기능 추가)
               TextField(
                 controller: passwordController,
                 focusNode: _passwordFocusNode,
-                obscureText: true,
+                obscureText: _obscurePassword,
                 decoration: InputDecoration(
                   hintText: '영문, 숫자, 특수문자 포함 8자 이상',
                   hintStyle: TextStyle(fontSize: 15, color: Colors.grey[500]),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  errorText: _passwordError, // 오류 메시지 표시
+                  errorText: _passwordError,
                   errorStyle: const TextStyle(color: Colors.red, fontSize: 12),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                      color: Colors.grey,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _obscurePassword = !_obscurePassword;
+                      });
+                    },
+                  ),
                 ),
               ),
               const SizedBox(height: 26),
