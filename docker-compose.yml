@@ -1,26 +1,10 @@
 version: '3.8'
 
 services:
-  backend:
-    build:
-      context: ./backend
-    container_name: revieweat_backend
-    ports:
-      - "8000:8000"
-    depends_on:
-      - db
-    volumes:
-      - ./backend:/app
-    environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/revieweat
-      - SECRET_KEY=your-secure-secret-key
-    working_dir: /app
-    command: ["./wait-for-it.sh", "db:5432", "--", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
-
   db:
     image: postgres:15-alpine
     container_name: revieweat_db
-    restart: always
+    restart: unless-stopped
     ports:
       - "5432:5432"
     environment:
@@ -30,7 +14,31 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d revieweat"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: revieweat_backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/revieweat
+      - SECRET_KEY=your-secure-secret-key-change-in-production
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+    working_dir: /app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
 volumes:
   pgdata:
-
