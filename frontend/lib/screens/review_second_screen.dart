@@ -124,10 +124,7 @@ class _ReviewSecondScreenState extends State<ReviewSecondScreen> {
               _buildMap(lat, lng, name),
               _buildPlaceInfo(name, address),
               const SizedBox(height: 16),
-              Container(
-                height: 1,
-                color: Colors.black,
-              ),
+              Container(height: 1, color: Colors.black),
               const SizedBox(height: 16),
               _buildCompactSelectors(context),
               const SizedBox(height: 32),
@@ -175,17 +172,9 @@ class _ReviewSecondScreenState extends State<ReviewSecondScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          name,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-        ),
+        Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
         const SizedBox(height: 4),
-        Text(
-          address,
-          style: const TextStyle(color: Colors.grey, fontSize: 13),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
+        Text(address, style: const TextStyle(color: Colors.grey, fontSize: 13)),
       ],
     );
   }
@@ -193,40 +182,45 @@ class _ReviewSecondScreenState extends State<ReviewSecondScreen> {
   Widget _buildCompactSelectors(BuildContext context) {
     return Row(
       children: [
-        // 날짜 선택 (바텀시트 캘린더)
+        // 날짜 선택
         Expanded(
-          child: Container(
-            height: 44,
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: InkWell(
-              onTap: () => _showDatePickerModal(context),
+          child: GestureDetector(
+            onTap: () => _showDatePickerModal(context),
+            child: Container(
+              height: 44,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                border: Border.all(color: Colors.grey.shade300),
+                borderRadius: BorderRadius.circular(8),
+              ),
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Icon(Icons.calendar_today_outlined, size: 18, color: Colors.lightBlue),
-                  const SizedBox(width: 2),
-                  Expanded(
-                    child: Text(
-                      selectedDate == null
-                          ? '날짜'
-                          : '${DateFormat('yyyy').format(selectedDate!)}\n${DateFormat('MM.dd').format(selectedDate!)}',
-                      style: const TextStyle(fontSize: 12, color: Colors.grey, height: 1.2),
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                    ),
+                  Row(
+                    children: [
+                      if (selectedDate == null)
+                        const Icon(Icons.calendar_today_outlined, size: 18, color: Colors.lightBlue),
+                      if (selectedDate == null) const SizedBox(width: 4),
+                      Text(
+                        selectedDate != null
+                            ? DateFormat('yyyy.MM.dd').format(selectedDate!)
+                            : '날짜',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: selectedDate != null ? Colors.black87 : Colors.grey,
+                        ),
+                      ),
+                    ],
                   ),
-                  const Icon(Icons.expand_more, color: Colors.black87),
+                  const Icon(Icons.expand_more),
                 ],
               ),
             ),
           ),
         ),
         const SizedBox(width: 6),
-        // 평점 선택 드롭다운
+        // 평점 선택
         Expanded(
           child: Container(
             height: 44,
@@ -263,7 +257,7 @@ class _ReviewSecondScreenState extends State<ReviewSecondScreen> {
           ),
         ),
         const SizedBox(width: 6),
-        // 동반인 선택 드롭다운
+        // 동반인 선택
         Expanded(
           child: Container(
             height: 44,
@@ -314,7 +308,7 @@ class _ReviewSecondScreenState extends State<ReviewSecondScreen> {
       child: ElevatedButton(
         onPressed: isEnabled
             ? () {
-                // TODO: 완료 후 처리 로직 추가
+                // 완료 처리 로직
               }
             : null,
         style: ElevatedButton.styleFrom(
