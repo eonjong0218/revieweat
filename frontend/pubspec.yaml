@@ -14,11 +14,16 @@ dependencies:
   flutter_native_splash: ^2.4.6
   http: ^1.2.0
   google_maps_flutter: ^2.5.0
-  geolocator: ^9.0.2  
+  geolocator: ^9.0.2
   shared_preferences: ^2.0.15
-  permission_handler: ^11.0.1  # 권한 처리를 위해 추가
-  location: ^5.0.3  # 추가적인 위치 서비스 지원
+  permission_handler: ^11.0.1
+  location: ^5.0.3
   logger: ^1.1.0
+  intl: ^0.19.0
+  flutter_localizations:
+    sdk: flutter
+  syncfusion_flutter_datepicker: ^29.2.5
+  syncfusion_flutter_core: ^29.2.5
 
 dev_dependencies:
   flutter_test:
@@ -31,7 +36,7 @@ flutter:
   assets:
     - assets/images/logo.png
     - assets/images/kakao_icon.png
-    
+
   fonts:
     - family: Inter
       fonts:
