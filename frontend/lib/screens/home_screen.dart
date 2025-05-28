@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
-import 'search_screen.dart'; // SearchScreen 클래스가 여기에 정의되어 있어야 합니다.
+import 'search_screen.dart'; 
+import 'review_place_search_screen.dart'; 
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -97,6 +98,14 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  // 추가: FloatingActionButton 누르면 review_place_search_screen으로 이동
+  void _goToReviewPlaceSearchScreen() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const ReviewPlaceSearchScreen()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -145,7 +154,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 35),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -205,7 +214,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {},
+        onPressed: _goToReviewPlaceSearchScreen,
         shape: const CircleBorder(),
         backgroundColor: Colors.black,
         child: const Icon(Icons.edit, color: Colors.white),
