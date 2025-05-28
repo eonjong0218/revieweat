@@ -3,10 +3,12 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:geolocator/geolocator.dart';
-import 'review_second_screen.dart'; // ✅ 추가된 부분
+import 'review_second_screen.dart';
 
 class ReviewPlaceSearchScreen extends StatefulWidget {
-  const ReviewPlaceSearchScreen({super.key});
+  final String? keyword; // 검색 키워드 파라미터
+
+  const ReviewPlaceSearchScreen({super.key, this.keyword}); // super parameter 사용
 
   @override
   State<ReviewPlaceSearchScreen> createState() => _ReviewPlaceSearchScreenState();
@@ -22,12 +24,18 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
   Map<String, dynamic>? _selectedPlace;
 
   Position? _currentPosition;
-  Map<String, LatLng> _predictionLocations = {};
+  final Map<String, LatLng> _predictionLocations = {}; // final로 변경
 
   @override
   void initState() {
     super.initState();
     _setInitialLocation();
+
+    // keyword가 있으면 자동 검색
+    if (widget.keyword != null && widget.keyword!.isNotEmpty) {
+      _searchController.text = widget.keyword!;
+      _onSearchChanged(widget.keyword!);
+    }
   }
 
   @override
@@ -141,7 +149,7 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => ReviewSecondScreen(place: _selectedPlace!), // ✅ 수정된 부분
+          builder: (context) => ReviewSecondScreen(place: _selectedPlace!),
         ),
       );
     }
@@ -228,7 +236,7 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
                       border: Border.all(color: Colors.grey.shade200),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
+                          color: Colors.black.withValues(alpha: 0.05), // withOpacity -> withValues
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -261,7 +269,7 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withAlpha((0.1 * 255).round()),
+                              color: Colors.black.withValues(alpha: 0.1), // withOpacity -> withValues
                               blurRadius: 4,
                               offset: const Offset(0, 2),
                             ),
@@ -299,7 +307,7 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
                   color: Colors.white,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withValues(alpha: 0.1), // withOpacity -> withValues
                       blurRadius: 10,
                       offset: const Offset(0, -2),
                     ),
@@ -342,7 +350,6 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
         final mainText = prediction['structured_formatting']?['main_text'] ?? '';
         final secondaryText =
             prediction['structured_formatting']?['secondary_text'] ?? '';
-
         bool isSelected = _selectedPlace != null &&
             _selectedPlace!['place_id'] == prediction['place_id'];
 
