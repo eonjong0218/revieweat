@@ -6,6 +6,7 @@ import 'screens/home_screen.dart';
 import 'screens/search_result_screen.dart';
 import 'screens/review_place_search_screen.dart';
 import 'screens/review_second_screen.dart';
+import 'screens/review_final_screen.dart'; 
 
 void main() {
   runApp(const ReviewEatApp());
@@ -59,24 +60,41 @@ class ReviewEatApp extends StatelessWidget {
           if (args is String) {
             keyword = args;
           }
-          // 반드시 ReviewPlaceSearchScreen에 keyword 파라미터가 정의되어 있어야 함!
           return MaterialPageRoute(
             builder: (_) => ReviewPlaceSearchScreen(keyword: keyword),
           );
         } else if (settings.name == '/review_second') {
           final args = settings.arguments;
-          // place는 null이 아니어야 하므로 체크
           if (args is Map<String, dynamic>) {
             return MaterialPageRoute(
               builder: (_) => ReviewSecondScreen(place: args),
             );
           } else {
-            // 잘못된 arguments 전달 시 에러 안내 화면 (예시)
             return MaterialPageRoute(
               builder: (_) => const Scaffold(
-                body: Center(
-                  child: Text('잘못된 접근입니다.'),
-                ),
+                body: Center(child: Text('잘못된 접근입니다.')),
+              ),
+            );
+          }
+        } else if (settings.name == '/review_final') {
+          final args = settings.arguments;
+          if (args is Map<String, dynamic> &&
+              args['place'] != null &&
+              args['selectedDate'] != null &&
+              args['selectedRating'] != null &&
+              args['selectedCompanion'] != null) {
+            return MaterialPageRoute(
+              builder: (_) => ReviewFinalScreen(
+                place: args['place'],
+                selectedDate: args['selectedDate'],
+                selectedRating: args['selectedRating'],
+                selectedCompanion: args['selectedCompanion'],
+              ),
+            );
+          } else {
+            return MaterialPageRoute(
+              builder: (_) => const Scaffold(
+                body: Center(child: Text('리뷰 최종화면 접근 오류')),
               ),
             );
           }
