@@ -3,7 +3,9 @@ import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/home_screen.dart';
-import 'screens/search_result_screen.dart';  // 추가
+import 'screens/search_result_screen.dart';
+import 'screens/review_place_search_screen.dart';
+import 'screens/review_second_screen.dart';
 
 void main() {
   runApp(const ReviewEatApp());
@@ -33,7 +35,6 @@ class ReviewEatApp extends StatelessWidget {
         ),
       ),
       initialRoute: '/',
-      // routes 대신 onGenerateRoute 사용
       onGenerateRoute: (settings) {
         if (settings.name == '/') {
           return MaterialPageRoute(builder: (_) => const SplashScreen());
@@ -52,10 +53,36 @@ class ReviewEatApp extends StatelessWidget {
           return MaterialPageRoute(
             builder: (_) => SearchResultScreen(initialQuery: initialQuery),
           );
+        } else if (settings.name == '/review_place_search') {
+          final args = settings.arguments;
+          String? keyword;
+          if (args is String) {
+            keyword = args;
+          }
+          // 반드시 ReviewPlaceSearchScreen에 keyword 파라미터가 정의되어 있어야 함!
+          return MaterialPageRoute(
+            builder: (_) => ReviewPlaceSearchScreen(keyword: keyword),
+          );
+        } else if (settings.name == '/review_second') {
+          final args = settings.arguments;
+          // place는 null이 아니어야 하므로 체크
+          if (args is Map<String, dynamic>) {
+            return MaterialPageRoute(
+              builder: (_) => ReviewSecondScreen(place: args),
+            );
+          } else {
+            // 잘못된 arguments 전달 시 에러 안내 화면 (예시)
+            return MaterialPageRoute(
+              builder: (_) => const Scaffold(
+                body: Center(
+                  child: Text('잘못된 접근입니다.'),
+                ),
+              ),
+            );
+          }
         }
         return null;
       },
     );
   }
 }
-
