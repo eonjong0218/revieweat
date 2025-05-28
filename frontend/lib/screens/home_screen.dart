@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
-import 'search_screen.dart'; 
-import 'review_place_search_screen.dart'; 
+import 'search_screen.dart';
+import 'review_place_search_screen.dart';
+import 'profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -15,7 +16,7 @@ class _HomeScreenState extends State<HomeScreen> {
   late GoogleMapController _mapController;
   bool _mapControllerReady = false;
 
-  LatLng _initialPosition = const LatLng(35.3350, 129.0089); // 부산대 양산캠퍼스
+  LatLng _initialPosition = const LatLng(35.3350, 129.0089);
   final Set<Marker> _markers = {};
   int _selectedIndex = 0;
 
@@ -84,6 +85,13 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _selectedIndex = index;
     });
+
+    if (index == 2) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const ProfileScreen()),
+      );
+    }
   }
 
   void _moveToCurrentLocation() async {
@@ -98,7 +106,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // 추가: FloatingActionButton 누르면 review_place_search_screen으로 이동
   void _goToReviewPlaceSearchScreen() {
     Navigator.push(
       context,
@@ -136,7 +143,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withAlpha((0.1 * 255).round()), // 변경됨
+                      color: Colors.black.withAlpha((0.1 * 255).round()),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),
@@ -173,7 +180,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withAlpha((0.12 * 255).round()), // 그림자 약간 더 진하게
+                            color: Colors.black.withAlpha((0.12 * 255).round()),
                             blurRadius: 6,
                             offset: const Offset(0, 2),
                           ),
