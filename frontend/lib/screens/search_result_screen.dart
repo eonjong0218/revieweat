@@ -609,7 +609,7 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
             },
           ),
 
-          // 지도 컨트롤 버튼들 (원래 디자인 유지)
+          // 지도 컨트롤 버튼들 (withOpacity를 withValues로 교체)
           Positioned(
             right: 12,
             bottom: MediaQuery.of(context).size.height * _sheetPosition + 20,
@@ -626,7 +626,7 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withAlpha((0.1 * 255).round()),
+                          color: Colors.black.withValues(alpha: 0.1),
                           blurRadius: 4,
                           offset: const Offset(0, 2),
                         ),
@@ -649,7 +649,7 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
                     borderRadius: BorderRadius.circular(4),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withAlpha((0.1 * 255).round()),
+                        color: Colors.black.withValues(alpha: 0.1),
                         blurRadius: 4,
                         offset: const Offset(0, 2),
                       ),
@@ -719,7 +719,7 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
         border: Border.all(color: Colors.grey.shade100),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),

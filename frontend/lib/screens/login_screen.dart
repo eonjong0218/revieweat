@@ -90,12 +90,12 @@ class _LoginScreenState extends State<LoginScreen> {
     });
   }
 
-  // 커스텀 오버레이 메시지 함수 (특정 위치에서 줄바꿈)
+  // 커스텀 오버레이 메시지 함수 (withOpacity를 withAlpha로 교체)
   void _showCustomMessage(String message, bool isSuccess) {
     showDialog(
       context: context,
       barrierDismissible: false,
-      barrierColor: Colors.black26,
+      barrierColor: Colors.black.withAlpha((0.26 * 255).round()),
       builder: (BuildContext context) {
         return Center(
           child: Material(
@@ -108,7 +108,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withAlpha((0.1 * 255).round()),
                     blurRadius: 20,
                     offset: const Offset(0, 10),
                   ),
@@ -122,8 +122,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     height: 60,
                     decoration: BoxDecoration(
                       color: isSuccess 
-                          ? const Color(0xFF3D02ED).withOpacity(0.1) 
-                          : Colors.red.withOpacity(0.1),
+                          ? const Color(0xFF3D02ED).withAlpha((0.1 * 255).round())
+                          : Colors.red.withAlpha((0.1 * 255).round()),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(

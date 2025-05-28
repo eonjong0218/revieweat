@@ -102,7 +102,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _updateFormState();
   }
 
-  // 커스텀 오버레이 메시지 함수 (수정된 버전)
+  // 커스텀 오버레이 메시지 함수 (withOpacity를 withValues로 교체)
   void _showCustomMessage(String message, bool isSuccess) {
     showDialog(
       context: context,
@@ -120,7 +120,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 20,
                     offset: const Offset(0, 10),
                   ),
@@ -133,7 +133,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     width: 60,
                     height: 60,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF3D02ED).withOpacity(0.1),
+                      color: const Color(0xFF3D02ED).withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
