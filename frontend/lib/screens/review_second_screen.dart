@@ -1,23 +1,94 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:syncfusion_flutter_datepicker/datepicker.dart';
+import 'package:syncfusion_flutter_core/theme.dart';
+import 'package:intl/intl.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 class ReviewSecondScreen extends StatefulWidget {
   final Map<String, dynamic> place;
 
-  const ReviewSecondScreen({Key? key, required this.place}) : super(key: key);
+  const ReviewSecondScreen({super.key, required this.place});
 
   @override
   State<ReviewSecondScreen> createState() => _ReviewSecondScreenState();
 }
 
 class _ReviewSecondScreenState extends State<ReviewSecondScreen> {
-  String? selectedDate;
+  DateTime? selectedDate;
   String? selectedRating;
   String? selectedCompanion;
 
-  static const List<String> dateOptions = ['2025-05-27', '2025-05-28', '2025-05-29'];
-  static const List<String> ratingOptions = ['★☆☆☆☆', '★★☆☆☆', '★★★☆☆', '★★★★☆', '★★★★★'];
-  static const List<String> companionOptions = ['혼자', '친구', '연인', '가족', '기타'];
+  static const List<String> ratingOptions = [
+    '★☆☆☆☆', '★★☆☆☆', '★★★☆☆', '★★★★☆', '★★★★★'
+  ];
+  static const List<String> companionOptions = [
+    '혼자', '친구', '연인', '가족', '기타'
+  ];
+
+  Future<void> _showDatePickerModal(BuildContext context) async {
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: false,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return Localizations(
+          locale: const Locale('ko', 'KR'),
+          delegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: SfDateRangePickerTheme(
+              data: SfDateRangePickerThemeData(
+                backgroundColor: Colors.white,
+                headerBackgroundColor: Colors.white,
+                viewHeaderBackgroundColor: Colors.white,
+                selectionColor: Colors.black,
+                selectionTextStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                todayHighlightColor: Colors.grey[800],
+                todayTextStyle: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                cellTextStyle: const TextStyle(color: Colors.black87),
+                rangeSelectionColor: Colors.grey[300],
+                headerTextStyle: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+                viewHeaderTextStyle: const TextStyle(
+                  color: Colors.grey,
+                  fontWeight: FontWeight.w600,
+                ),
+                leadingDatesTextStyle: const TextStyle(color: Colors.grey),
+                trailingDatesTextStyle: const TextStyle(color: Colors.grey),
+                disabledDatesTextStyle: const TextStyle(color: Colors.grey),
+                disabledCellTextStyle: const TextStyle(color: Colors.grey),
+                weekendDatesTextStyle: const TextStyle(color: Colors.grey),
+              ),
+              child: SfDateRangePicker(
+                selectionMode: DateRangePickerSelectionMode.single,
+                initialSelectedDate: selectedDate,
+                onSelectionChanged: (DateRangePickerSelectionChangedArgs args) {
+                  if (args.value is DateTime) {
+                    setState(() {
+                      selectedDate = args.value;
+                    });
+                    Navigator.pop(context);
+                  }
+                },
+                showActionButtons: false,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,10 +103,11 @@ class _ReviewSecondScreenState extends State<ReviewSecondScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: SizedBox.shrink(), // ← 왼쪽 상단 뒤로가기 버튼 완전 삭제
+        toolbarHeight: 80,
+        leading: const SizedBox.shrink(),
         actions: [
           Padding(
-            padding: const EdgeInsets.only(right: 10.0),
+            padding: const EdgeInsets.only(right: 10.0, top: 30.0),
             child: IconButton(
               icon: const Icon(Icons.arrow_back, color: Colors.black),
               onPressed: () => Navigator.pop(context),
@@ -52,7 +124,12 @@ class _ReviewSecondScreenState extends State<ReviewSecondScreen> {
               _buildMap(lat, lng, name),
               _buildPlaceInfo(name, address),
               const SizedBox(height: 16),
-              _buildDropdowns(),
+              Container(
+                height: 1,
+                color: Colors.black,
+              ),
+              const SizedBox(height: 16),
+              _buildCompactSelectors(context),
               const SizedBox(height: 32),
               _buildCompleteButton(),
               const SizedBox(height: 24),
@@ -103,20 +180,6 @@ class _ReviewSecondScreenState extends State<ReviewSecondScreen> {
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
         const SizedBox(height: 4),
-        Row(
-          children: const [
-            Text(
-              '카페',
-              style: TextStyle(color: Colors.black54, fontSize: 14),
-            ),
-            SizedBox(width: 8),
-            Text(
-              '150m',
-              style: TextStyle(color: Colors.grey, fontSize: 13),
-            ),
-          ],
-        ),
-        const SizedBox(height: 4),
         Text(
           address,
           style: const TextStyle(color: Colors.grey, fontSize: 13),
@@ -127,43 +190,114 @@ class _ReviewSecondScreenState extends State<ReviewSecondScreen> {
     );
   }
 
-  Widget _buildDropdowns() {
+  Widget _buildCompactSelectors(BuildContext context) {
     return Row(
       children: [
+        // 날짜 선택 (바텀시트 캘린더)
         Expanded(
-          child: DropdownButtonFormField<String>(
-            value: selectedDate,
-            decoration: _dropdownDecoration('날짜 선택'),
-            items: dateOptions.map(_buildMenuItem).toList(),
-            onChanged: (v) => setState(() => selectedDate = v),
+          child: Container(
+            height: 44,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: InkWell(
+              onTap: () => _showDatePickerModal(context),
+              child: Row(
+                children: [
+                  const Icon(Icons.calendar_today_outlined, size: 18, color: Colors.lightBlue),
+                  const SizedBox(width: 2),
+                  Expanded(
+                    child: Text(
+                      selectedDate == null
+                          ? '날짜'
+                          : DateFormat('yyyy.MM.dd').format(selectedDate!),
+                      style: const TextStyle(fontSize: 14, color: Colors.grey),
+                    ),
+                  ),
+                  const Icon(Icons.expand_more, color: Colors.black87),
+                ],
+              ),
+            ),
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 6),
+        // 평점 선택 드롭다운
         Expanded(
-          child: DropdownButtonFormField<String>(
-            value: selectedRating,
-            decoration: _dropdownDecoration('평점 선택'),
-            items: ratingOptions.map(_buildMenuItem).toList(),
-            onChanged: (v) => setState(() => selectedRating = v),
+          child: Container(
+            height: 44,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: selectedRating,
+                hint: Row(
+                  children: const [
+                    Icon(Icons.star_border, size: 18, color: Colors.amber),
+                    SizedBox(width: 2),
+                    Text('평점', style: TextStyle(fontSize: 14, color: Colors.grey)),
+                  ],
+                ),
+                items: ratingOptions.map((v) {
+                  return DropdownMenuItem(
+                    value: v,
+                    child: Text(v, style: const TextStyle(fontSize: 14)),
+                  );
+                }).toList(),
+                onChanged: (v) => setState(() => selectedRating = v),
+                isExpanded: true,
+                icon: const Icon(Icons.expand_more),
+                style: const TextStyle(color: Colors.black87),
+                dropdownColor: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 6),
+        // 동반인 선택 드롭다운
         Expanded(
-          child: DropdownButtonFormField<String>(
-            value: selectedCompanion,
-            decoration: _dropdownDecoration('동반인'),
-            items: companionOptions.map(_buildMenuItem).toList(),
-            onChanged: (v) => setState(() => selectedCompanion = v),
+          child: Container(
+            height: 44,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: selectedCompanion,
+                hint: Row(
+                  children: const [
+                    Icon(Icons.group_outlined, size: 18, color: Colors.blueGrey),
+                    SizedBox(width: 2),
+                    Text('동반인', style: TextStyle(fontSize: 14, color: Colors.grey)),
+                  ],
+                ),
+                items: companionOptions.map((v) {
+                  return DropdownMenuItem(
+                    value: v,
+                    child: Text(v, style: const TextStyle(fontSize: 14)),
+                  );
+                }).toList(),
+                onChanged: (v) => setState(() => selectedCompanion = v),
+                isExpanded: true,
+                icon: const Icon(Icons.expand_more),
+                style: const TextStyle(color: Colors.black87),
+                dropdownColor: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
           ),
         ),
       ],
-    );
-  }
-
-  DropdownMenuItem<String> _buildMenuItem(String value) {
-    return DropdownMenuItem(
-      value: value,
-      child: Text(value),
     );
   }
 
@@ -193,24 +327,6 @@ class _ReviewSecondScreenState extends State<ReviewSecondScreen> {
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
       ),
-    );
-  }
-
-  InputDecoration _dropdownDecoration(String hint) {
-    return InputDecoration(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      hintText: hint,
-      hintStyle: const TextStyle(color: Colors.grey, fontSize: 15),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: Colors.grey.shade300),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: Colors.grey.shade300),
-      ),
-      filled: true,
-      fillColor: Colors.grey[100],
     );
   }
 }
