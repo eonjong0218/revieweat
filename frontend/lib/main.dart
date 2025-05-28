@@ -6,7 +6,8 @@ import 'screens/home_screen.dart';
 import 'screens/search_result_screen.dart';
 import 'screens/review_place_search_screen.dart';
 import 'screens/review_second_screen.dart';
-import 'screens/review_final_screen.dart'; 
+import 'screens/review_final_screen.dart';
+import 'screens/profile_screen.dart';
 
 void main() {
   runApp(const ReviewEatApp());
@@ -98,9 +99,11 @@ class ReviewEatApp extends StatelessWidget {
               ),
             );
           }
+        } else if (settings.name == '/profile') {
+          return MaterialPageRoute(builder: (_) => const ProfileScreen());
         }
         return null;
       },
     );
   }
-}
+} 
