@@ -3,6 +3,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:geolocator/geolocator.dart';
+import 'review_second_screen.dart'; // ✅ 추가된 부분
 
 class ReviewPlaceSearchScreen extends StatefulWidget {
   const ReviewPlaceSearchScreen({super.key});
@@ -20,8 +21,8 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
   Set<Marker> _markers = {};
   Map<String, dynamic>? _selectedPlace;
 
-  Position? _currentPosition; // 현재 위치 저장
-  Map<String, LatLng> _predictionLocations = {}; // place_id -> 좌표 저장
+  Position? _currentPosition;
+  Map<String, LatLng> _predictionLocations = {};
 
   @override
   void initState() {
@@ -73,7 +74,8 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
       return;
     }
 
-    final String url = 'https://maps.googleapis.com/maps/api/place/autocomplete/json'
+    final String url =
+        'https://maps.googleapis.com/maps/api/place/autocomplete/json'
         '?input=${Uri.encodeComponent(value)}'
         '&key=$_googleApiKey'
         '&language=ko'
@@ -92,11 +94,11 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
     }
   }
 
-  // place details API 호출해서 장소 좌표 받아오기 + 지도 이동 + 마커 생성
   void _onPredictionTap(dynamic prediction) async {
     final placeId = prediction['place_id'];
 
-    final String url = 'https://maps.googleapis.com/maps/api/place/details/json'
+    final String url =
+        'https://maps.googleapis.com/maps/api/place/details/json'
         '?place_id=$placeId'
         '&key=$_googleApiKey'
         '&language=ko'
@@ -115,14 +117,9 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
           _mapController!.animateCamera(CameraUpdate.newLatLngZoom(latLng, 16));
         }
 
-        // 선택한 장소 정보, 마커 세팅
         setState(() {
           _selectedPlace = place;
-
-          // place_id -> 좌표 저장해서 거리 계산에 사용
           _predictionLocations[placeId] = latLng;
-
-          // 기존 마커 교체
           _markers = {
             Marker(
               markerId: const MarkerId('selected_place'),
@@ -133,7 +130,6 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
               ),
             ),
           };
-
           _searchController.text = place['name'] ?? '';
         });
       }
@@ -142,7 +138,12 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
 
   void _onPlaceSelected() {
     if (_selectedPlace != null) {
-      Navigator.pop(context, _selectedPlace);
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ReviewSecondScreen(place: _selectedPlace!), // ✅ 수정된 부분
+        ),
+      );
     }
   }
 
@@ -179,11 +180,10 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: Padding(
-        padding: const EdgeInsets.only(top: 20), // 🔽 전체를 아래로 살짝 내림
+        padding: const EdgeInsets.only(top: 20),
         child: SafeArea(
           child: Column(
             children: [
-              // 검색 바
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 child: Row(
@@ -217,11 +217,7 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
                   ],
                 ),
               ),
-
-              // 검색 바와 지도 사이 간격 (유지)
               const SizedBox(height: 0),
-
-              // 지도 영역 + 현재 위치 버튼을 Stack으로 묶음
               Stack(
                 children: [
                   Container(
@@ -252,8 +248,6 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
                       ),
                     ),
                   ),
-
-                  // 현재 위치 버튼 (우측 하단 확대/축소 버튼 위)
                   Positioned(
                     bottom: 100,
                     right: 30,
@@ -285,8 +279,6 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
                   ),
                 ],
               ),
-
-              // 핸들
               Container(
                 width: 40,
                 height: 4,
@@ -296,15 +288,11 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-
-              // 검색 결과 or 빈 상태
               Expanded(
                 child: _predictions.isNotEmpty
                     ? _buildSearchResults()
                     : _buildEmptyState(),
               ),
-
-              // 장소 선택 버튼
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
@@ -323,9 +311,8 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
                   child: ElevatedButton(
                     onPressed: _selectedPlace != null ? _onPlaceSelected : null,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _selectedPlace != null
-                          ? Colors.black
-                          : Colors.grey[400],
+                      backgroundColor:
+                          _selectedPlace != null ? Colors.black : Colors.grey[400],
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -333,8 +320,7 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
                     ),
                     child: const Text(
                       '이 장소 선택',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                     ),
                   ),
                 ),
@@ -389,15 +375,15 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
                 Expanded(
                   child: Text(
                     mainText,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w600, fontSize: 15),
+                    style:
+                        const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 if (distanceMeters != null)
                   Padding(
-                    padding: const EdgeInsets.only(left: 8),
+                    padding: const EdgeInsets.only(left: 2),
                     child: Text(
                       '${distanceMeters.toInt()}m',
                       style: const TextStyle(
