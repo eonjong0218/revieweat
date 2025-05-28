@@ -73,7 +73,6 @@ class _ReviewSecondScreenState extends State<ReviewSecondScreen> {
               child: SfDateRangePicker(
                 selectionMode: DateRangePickerSelectionMode.single,
                 initialSelectedDate: selectedDate,
-                monthFormat: 'yyyy년 MM월',
                 onSelectionChanged: (DateRangePickerSelectionChangedArgs args) {
                   if (args.value is DateTime) {
                     setState(() {

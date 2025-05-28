@@ -102,6 +102,76 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _updateFormState();
   }
 
+  // 커스텀 오버레이 메시지 함수 (수정된 버전)
+  void _showCustomMessage(String message, bool isSuccess) {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // 사용자가 임의로 닫지 못하도록 설정
+      barrierColor: Colors.black26,
+      builder: (BuildContext context) {
+        return Center(
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 40),
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF3D02ED).withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.check_circle,
+                      color: Color(0xFF3D02ED),
+                      size: 30,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    '회원가입 성공!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF3D02ED),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    // 2초 후 다이얼로그를 닫고 로그인 화면으로 이동
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted && Navigator.canPop(context)) {
+        Navigator.of(context).pop(); // 다이얼로그 닫기
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+        );
+      }
+    });
+  }
+
   Future<void> _register() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
@@ -123,13 +193,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('회원가입 성공! 로그인해주세요.')),
-        );
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
-        );
+        
+        _showCustomMessage('회원가입 성공!', true);
+        // 화면 이동은 _showCustomMessage에서 처리
+        
       } else {
         final errorData = json.decode(response.body);
         final detail = errorData['detail'] ?? '회원가입에 실패했습니다.';
