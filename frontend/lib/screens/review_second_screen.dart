@@ -73,6 +73,7 @@ class _ReviewSecondScreenState extends State<ReviewSecondScreen> {
               child: SfDateRangePicker(
                 selectionMode: DateRangePickerSelectionMode.single,
                 initialSelectedDate: selectedDate,
+                monthFormat: 'yyyy년 MM월',
                 onSelectionChanged: (DateRangePickerSelectionChangedArgs args) {
                   if (args.value is DateTime) {
                     setState(() {
@@ -213,8 +214,10 @@ class _ReviewSecondScreenState extends State<ReviewSecondScreen> {
                     child: Text(
                       selectedDate == null
                           ? '날짜'
-                          : DateFormat('yyyy.MM.dd').format(selectedDate!),
-                      style: const TextStyle(fontSize: 14, color: Colors.grey),
+                          : '${DateFormat('yyyy').format(selectedDate!)}\n${DateFormat('MM.dd').format(selectedDate!)}',
+                      style: const TextStyle(fontSize: 12, color: Colors.grey, height: 1.2),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
                     ),
                   ),
                   const Icon(Icons.expand_more, color: Colors.black87),
