@@ -351,7 +351,7 @@ class _SearchScreenState extends State<SearchScreen> {
           children: [
             // 상단 검색 바 영역 (뒤로가기 버튼을 오른쪽으로 이동)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 35),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 height: 48,
@@ -461,7 +461,7 @@ class _SearchScreenState extends State<SearchScreen> {
         // 최근 검색 헤더
         if (_recentSearches.isNotEmpty)
           Container(
-            padding: const EdgeInsets.fromLTRB(20, 20, 16, 12),
+            padding: const EdgeInsets.fromLTRB(20, 5, 16, 12),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
