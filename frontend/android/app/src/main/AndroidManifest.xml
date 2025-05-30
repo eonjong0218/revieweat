@@ -1,21 +1,44 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     
-    <!-- 위치 권한 추가 -->
+    <!-- 위치 권한 -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <!-- 인터넷 권한 (Google Maps API 사용을 위해) -->
+    
+    <!-- 네트워크 권한 -->
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- 네트워크 상태 확인 권한 -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <!-- 백그라운드 위치 권한 (필요한 경우만) -->
-    <!-- <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" /> -->
+    
+    <!-- 이미지 업로드를 위한 권한 (API 36 대응) -->
+    <!-- Android 12 이하 (API 32 이하) -->
+    <uses-permission 
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission 
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    
+    <!-- Android 13 이상 (API 33 이상) -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    
+    <!-- Android 14 이상 (API 34 이상) - 선택적 미디어 접근 -->
+    <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
+    
+    <!-- Android 15 (API 36) - 추가 권한 -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    
+    <!-- 카메라 권한 -->
+    <uses-permission android:name="android.permission.CAMERA" />
 
-    <!-- 위치 기능이 필요함을 명시 -->
+    <!-- 하드웨어 기능 명시 -->
     <uses-feature
         android:name="android.hardware.location"
         android:required="false" />
     <uses-feature
         android:name="android.hardware.location.gps"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.camera"
         android:required="false" />
 
     <application
@@ -23,7 +46,9 @@
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:enableOnBackInvokedCallback="true"
-        android:usesCleartextTraffic="true">
+        android:usesCleartextTraffic="true"
+        android:requestLegacyExternalStorage="true"
+        android:preserveLegacyExternalStorage="true">
 
         <!-- Google Maps API 키 -->
         <meta-data
@@ -40,18 +65,15 @@
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize">
             
-            <!-- Flutter 테마 설정 -->
             <meta-data
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme" />
             
-            <!-- 앱 실행 인텐트 필터 -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
 
-            <!-- 딥링크 지원 (필요한 경우) -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -60,29 +82,24 @@
             </intent-filter>
         </activity>
 
-        <!-- Flutter 임베딩 버전 -->
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
 
-        <!-- 네트워크 보안 설정 (개발용) -->
         <meta-data
             android:name="android.net.usesCleartextTraffic"
             android:value="true" />
     </application>
 
-    <!-- 텍스트 처리 쿼리 -->
     <queries>
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
-        <!-- 지도 앱 쿼리 -->
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="geo" />
         </intent>
-        <!-- 웹 브라우저 쿼리 -->
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="http" />
@@ -90,6 +107,17 @@
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="https" />
+        </intent>
+        <intent>
+            <action android:name="android.media.action.IMAGE_CAPTURE" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.PICK" />
+            <data android:mimeType="image/*" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.GET_CONTENT" />
+            <data android:mimeType="image/*" />
         </intent>
     </queries>
 </manifest>
