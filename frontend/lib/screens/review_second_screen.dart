@@ -4,7 +4,6 @@ import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 import 'package:syncfusion_flutter_core/theme.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'review_final_screen.dart';
 
 class ReviewSecondScreen extends StatefulWidget {
   final Map<String, dynamic> place;
@@ -309,16 +308,16 @@ class _ReviewSecondScreenState extends State<ReviewSecondScreen> {
       child: ElevatedButton(
         onPressed: isEnabled
             ? () {
-                Navigator.push(
+                // pushNamed로 변경
+                Navigator.pushNamed(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => ReviewFinalScreen(
-                      place: widget.place,
-                      selectedDate: selectedDate!,
-                      selectedRating: selectedRating!,
-                      selectedCompanion: selectedCompanion!,
-                    ),
-                  ),
+                  '/review_final',
+                  arguments: {
+                    'place': widget.place,
+                    'selectedDate': selectedDate!,
+                    'selectedRating': selectedRating!,
+                    'selectedCompanion': selectedCompanion!,
+                  },
                 );
               }
             : null,
