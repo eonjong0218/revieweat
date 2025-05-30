@@ -23,17 +23,15 @@ class ReviewFinalScreen extends StatefulWidget {
 
 class _ReviewFinalScreenState extends State<ReviewFinalScreen> {
   final TextEditingController _reviewController = TextEditingController();
-  List<File> _selectedImages = [];
+  final List<File> _selectedImages = [];
 
   Future<void> _pickImages() async {
-    final picker = ImagePicker();
-    final List<XFile>? images = await picker.pickMultiImage();
+    final ImagePicker picker = ImagePicker();
+    final List<XFile> images = await picker.pickMultiImage();
 
-    if (images != null) {
-      setState(() {
-        _selectedImages.addAll(images.map((xfile) => File(xfile.path)));
-      });
-    }
+    setState(() {
+      _selectedImages.addAll(images.map((xfile) => File(xfile.path)));
+    });
   }
 
   @override
@@ -59,7 +57,7 @@ class _ReviewFinalScreenState extends State<ReviewFinalScreen> {
         elevation: 0,
         toolbarHeight: 60,
         centerTitle: true,
-        title: null, // '리뷰 작성' 글자 제거
+        title: null,
         iconTheme: const IconThemeData(color: Colors.black),
         leading: const SizedBox.shrink(),
         actions: [
@@ -82,6 +80,8 @@ class _ReviewFinalScreenState extends State<ReviewFinalScreen> {
             children: [
               _buildInfoSection(name, address, date, rating, companion),
               const SizedBox(height: 24),
+              _buildImagePickerSection(),
+              const SizedBox(height: 24),
               const Text(
                 '리뷰 작성',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
@@ -93,7 +93,7 @@ class _ReviewFinalScreenState extends State<ReviewFinalScreen> {
                 onChanged: (_) => setState(() {}),
                 decoration: InputDecoration(
                   hintText: '내용을 입력해주세요...',
-                  hintStyle: TextStyle(fontSize: 14),
+                  hintStyle: const TextStyle(fontSize: 14),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(color: Colors.grey.shade300),
@@ -110,8 +110,6 @@ class _ReviewFinalScreenState extends State<ReviewFinalScreen> {
                   fillColor: Colors.grey[100],
                 ),
               ),
-              const SizedBox(height: 24),
-              _buildImagePickerSection(),
               const SizedBox(height: 32),
               SizedBox(
                 width: double.infinity,
@@ -119,10 +117,18 @@ class _ReviewFinalScreenState extends State<ReviewFinalScreen> {
                 child: ElevatedButton(
                   onPressed: isReady
                       ? () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('리뷰가 저장되었습니다.')),
+                          Navigator.pushNamed(
+                            context,
+                            '/review_success',
+                            arguments: {
+                              'place': widget.place,
+                              'selectedDate': widget.selectedDate,
+                              'selectedRating': widget.selectedRating,
+                              'selectedCompanion': widget.selectedCompanion,
+                              'reviewText': _reviewController.text,
+                              'images': _selectedImages,
+                            },
                           );
-                          Navigator.pop(context);
                         }
                       : null,
                   style: ElevatedButton.styleFrom(
@@ -196,59 +202,74 @@ class _ReviewFinalScreenState extends State<ReviewFinalScreen> {
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
         const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            ..._selectedImages.asMap().entries.map((entry) {
-              int index = entry.key;
-              File file = entry.value;
-              return Stack(
-                children: [
-                  ClipRRect(
+        SizedBox(
+          height: 150,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            children: [
+              // 사진 추가 버튼
+              GestureDetector(
+                onTap: _pickImages,
+                child: Container(
+                  width: 150,
+                  height: 150,
+                  margin: const EdgeInsets.only(right: 8),
+                  decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(8),
-                    child: Image.file(
-                      file,
-                      width: 150,
-                      height: 150,
-                      fit: BoxFit.cover,
-                    ),
+                    color: Colors.grey[200],
+                    border: Border.all(color: Colors.grey.shade300),
                   ),
-                  Positioned(
-                    top: 2,
-                    right: 2,
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _selectedImages.removeAt(index);
-                        });
-                      },
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.black45,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.close, size: 16, color: Colors.white),
-                      ),
-                    ),
-                  ),
-                ],
-              );
-            }),
-            GestureDetector(
-              onTap: _pickImages,
-              child: Container(
-                width: 150,
-                height: 150,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  color: Colors.grey[200],
-                  border: Border.all(color: Colors.grey.shade300),
+                  child: const Icon(Icons.add_a_photo, color: Colors.grey),
                 ),
-                child: const Icon(Icons.add_a_photo, color: Colors.grey),
               ),
-            ),
-          ],
+              // 선택된 이미지들
+              ..._selectedImages.asMap().entries.map((entry) {
+                int index = entry.key;
+                File file = entry.value;
+                return Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  child: Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.file(
+                          file,
+                          width: 150,
+                          height: 150,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _selectedImages.removeAt(index);
+                            });
+                          },
+                          child: Container(
+                            width: 24,
+                            height: 24,
+                            decoration: const BoxDecoration(
+                              color: Colors.black54,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.close,
+                              size: 16,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ],
+          ),
         ),
       ],
     );
