@@ -1,28 +1,32 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordRequestForm
-from datetime import timedelta
+from datetime import timedelta, datetime
 from typing import List, Optional
 from pydantic import BaseModel
+from sqlalchemy.exc import SQLAlchemyError
+import os
+import uuid
 
 from . import models, schemas, crud, database, auth, dependencies
 
-# DB 테이블 생성
-models.Base.metadata.create_all(bind=database.engine)
-
 app = FastAPI()
 
-# CORS 설정 추가
+# CORS 설정
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 프로덕션에서는 구체적인 도메인 지정
+    allow_origins=["*"],  # 운영 환경에 맞게 변경 권장
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# 검색 기록 요청 스키마
+# DB 테이블 생성 (앱 시작 시 한 번만)
+@app.on_event("startup")
+def on_startup():
+    models.Base.metadata.create_all(bind=database.engine)
+
 class SearchHistoryRequest(BaseModel):
     query: str
     is_place: bool = False
@@ -47,6 +51,7 @@ def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(dependencies.get_db),
 ):
+    # OAuth2PasswordRequestForm 기본 필드명 username이 email 역할
     user = crud.get_user_by_email(db, form_data.username)
     if not user or not crud.verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
@@ -68,58 +73,129 @@ def login_for_access_token(
 def read_users_me(current_user: models.User = Depends(dependencies.get_current_user)):
     return current_user
 
-# 검색 기록 관련 API
+@app.post("/api/reviews", status_code=status.HTTP_201_CREATED)
+async def create_review(
+    place_name: str = Form(...),
+    place_address: str = Form(...),
+    review_date: str = Form(...),
+    rating: str = Form(...),
+    companion: str = Form(...),
+    review_text: str = Form(...),
+    images: List[UploadFile] = File(default=[]),
+    current_user: models.User = Depends(dependencies.get_current_user),
+    db: Session = Depends(dependencies.get_db)
+):
+    try:
+        # 이미지 파일 저장 (수정된 로직)
+        image_paths = []
+        
+        # 이미지가 있는지 확인하는 조건 수정
+        if images:
+            for image in images:
+                # 파일명이 있고 실제 파일 크기가 0보다 큰 경우만 처리
+                if image.filename and image.filename.strip() and image.size > 0:
+                    # uploads 디렉토리 생성
+                    os.makedirs("uploads", exist_ok=True)
+                    
+                    # 고유한 파일명 생성
+                    file_extension = os.path.splitext(image.filename)[1]
+                    unique_filename = f"{uuid.uuid4()}{file_extension}"
+                    file_path = f"uploads/{unique_filename}"
+                    
+                    # 파일 저장
+                    with open(file_path, "wb") as buffer:
+                        content = await image.read()
+                        buffer.write(content)
+                    
+                    image_paths.append(file_path)
+                    print(f"이미지 저장됨: {file_path}")
+        
+        print(f"처리된 이미지 개수: {len(image_paths)}")
+        print(f"이미지 경로들: {image_paths}")
+        
+        # 리뷰 데이터 준비
+        review_data = {
+            "user_id": current_user.id,
+            "place_name": place_name,
+            "place_address": place_address,
+            "review_date": datetime.fromisoformat(review_date.replace('Z', '+00:00')),
+            "rating": rating,
+            "companion": companion,
+            "review_text": review_text,
+            "image_paths": ",".join(image_paths) if image_paths else None,
+            "created_at": datetime.utcnow()
+        }
+        
+        print(f"리뷰 데이터 수신: {review_data}")
+        
+        # 실제 데이터베이스에 저장
+        saved_review = crud.create_review(db, review_data)
+        
+        return {
+            "message": "리뷰가 성공적으로 저장되었습니다.",
+            "review_id": saved_review.id,
+            "place_name": place_name,
+            "rating": rating,
+            "image_count": len(image_paths),
+            "image_paths": image_paths,  # 디버깅용 추가
+            "status": "success"
+        }
+        
+    except Exception as e:
+        print(f"리뷰 저장 오류: {str(e)}")
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"리뷰 저장 중 오류가 발생했습니다: {str(e)}"
+        )
+
 @app.post("/search-history/", status_code=status.HTTP_201_CREATED)
 def save_search_history(
     request: SearchHistoryRequest,
     current_user: models.User = Depends(dependencies.get_current_user),
     db: Session = Depends(dependencies.get_db)
 ):
-    """검색 기록 저장 (일반 검색어와 특정 장소 구분)"""
+    if request.is_place and request.name:
+        existing = db.query(models.SearchHistory).filter(
+            models.SearchHistory.user_id == current_user.id,
+            models.SearchHistory.is_place == True,
+            models.SearchHistory.name == request.name
+        ).first()
+    else:
+        existing = db.query(models.SearchHistory).filter(
+            models.SearchHistory.user_id == current_user.id,
+            models.SearchHistory.is_place == False,
+            models.SearchHistory.query == request.query
+        ).first()
+
+    if existing:
+        db.delete(existing)
+
+    search_record = models.SearchHistory(
+        query=request.query,
+        is_place=request.is_place,
+        name=request.name if request.is_place else None,
+        user_id=current_user.id
+    )
     try:
-        # 중복 기록 삭제
-        if request.is_place and request.name:
-            existing = db.query(models.SearchHistory).filter(
-                models.SearchHistory.user_id == current_user.id,
-                models.SearchHistory.is_place == True,
-                models.SearchHistory.name == request.name
-            ).first()
-        else:
-            existing = db.query(models.SearchHistory).filter(
-                models.SearchHistory.user_id == current_user.id,
-                models.SearchHistory.is_place == False,
-                models.SearchHistory.query == request.query
-            ).first()
-        
-        if existing:
-            db.delete(existing)
-        
-        # 새로운 검색 기록 저장
-        search_record = models.SearchHistory(
-            query=request.query,
-            is_place=request.is_place,
-            name=request.name if request.is_place else None,
-            user_id=current_user.id
-        )
         db.add(search_record)
         db.commit()
         db.refresh(search_record)
-        
-        return {
-            "id": search_record.id,
-            "query": search_record.query,
-            "is_place": search_record.is_place,
-            "name": search_record.name,
-            "created_at": search_record.created_at,
-            "message": "검색 기록이 저장되었습니다."
-        }
-    
-    except Exception as e:
+    except SQLAlchemyError as e:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"검색 기록 저장 중 오류가 발생했습니다: {str(e)}"
         )
+    
+    return {
+        "id": search_record.id,
+        "query": search_record.query,
+        "is_place": search_record.is_place,
+        "name": search_record.name,
+        "created_at": search_record.created_at,
+        "message": "검색 기록이 저장되었습니다."
+    }
 
 @app.get("/search-history/")
 def get_search_history(
@@ -127,30 +203,22 @@ def get_search_history(
     current_user: models.User = Depends(dependencies.get_current_user),
     db: Session = Depends(dependencies.get_db)
 ):
-    """사용자의 검색 기록 조회"""
-    try:
-        history = db.query(models.SearchHistory).filter(
-            models.SearchHistory.user_id == current_user.id
-        ).order_by(
-            models.SearchHistory.created_at.desc()
-        ).limit(limit).all()
-        
-        return [
-            {
-                "id": record.id,
-                "query": record.query,
-                "is_place": record.is_place,
-                "name": record.name,
-                "created_at": record.created_at
-            }
-            for record in history
-        ]
+    history = db.query(models.SearchHistory).filter(
+        models.SearchHistory.user_id == current_user.id
+    ).order_by(
+        models.SearchHistory.created_at.desc()
+    ).limit(limit).all()
     
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"검색 기록 조회 중 오류가 발생했습니다: {str(e)}"
-        )
+    return [
+        {
+            "id": record.id,
+            "query": record.query,
+            "is_place": record.is_place,
+            "name": record.name,
+            "created_at": record.created_at
+        }
+        for record in history
+    ]
 
 @app.delete("/search-history/{history_id}")
 def delete_search_history(
@@ -158,78 +226,50 @@ def delete_search_history(
     current_user: models.User = Depends(dependencies.get_current_user),
     db: Session = Depends(dependencies.get_db)
 ):
-    """특정 검색 기록 삭제"""
-    try:
-        history = db.query(models.SearchHistory).filter(
-            models.SearchHistory.id == history_id,
-            models.SearchHistory.user_id == current_user.id
-        ).first()
-        
-        if not history:
-            raise HTTPException(status_code=404, detail="검색 기록을 찾을 수 없습니다.")
-        
-        db.delete(history)
-        db.commit()
-        
-        return {"message": "검색 기록이 삭제되었습니다."}
+    history = db.query(models.SearchHistory).filter(
+        models.SearchHistory.id == history_id,
+        models.SearchHistory.user_id == current_user.id
+    ).first()
     
-    except HTTPException:
-        raise
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"검색 기록 삭제 중 오류가 발생했습니다: {str(e)}"
-        )
+    if not history:
+        raise HTTPException(status_code=404, detail="검색 기록을 찾을 수 없습니다.")
+    
+    db.delete(history)
+    db.commit()
+    
+    return {"message": "검색 기록이 삭제되었습니다."}
 
 @app.delete("/search-history/")
 def clear_all_search_history(
     current_user: models.User = Depends(dependencies.get_current_user),
     db: Session = Depends(dependencies.get_db)
 ):
-    """사용자의 모든 검색 기록 삭제"""
-    try:
-        deleted_count = db.query(models.SearchHistory).filter(
-            models.SearchHistory.user_id == current_user.id
-        ).delete()
-        
-        db.commit()
-        
-        return {"message": f"{deleted_count}개의 검색 기록이 삭제되었습니다."}
+    deleted_count = db.query(models.SearchHistory).filter(
+        models.SearchHistory.user_id == current_user.id
+    ).delete()
     
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"검색 기록 삭제 중 오류가 발생했습니다: {str(e)}"
-        )
+    db.commit()
+    
+    return {"message": f"{deleted_count}개의 검색 기록이 삭제되었습니다."}
 
 @app.get("/search-history/stats")
 def get_search_history_stats(
     current_user: models.User = Depends(dependencies.get_current_user),
     db: Session = Depends(dependencies.get_db)
 ):
-    """검색 기록 통계 조회"""
-    try:
-        total_searches = db.query(models.SearchHistory).filter(
-            models.SearchHistory.user_id == current_user.id
-        ).count()
-        
-        place_searches = db.query(models.SearchHistory).filter(
-            models.SearchHistory.user_id == current_user.id,
-            models.SearchHistory.is_place == True
-        ).count()
-        
-        query_searches = total_searches - place_searches
-        
-        return {
-            "total_searches": total_searches,
-            "place_searches": place_searches,
-            "query_searches": query_searches
-        }
+    total_searches = db.query(models.SearchHistory).filter(
+        models.SearchHistory.user_id == current_user.id
+    ).count()
     
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"검색 기록 통계 조회 중 오류가 발생했습니다: {str(e)}"
-        )
+    place_searches = db.query(models.SearchHistory).filter(
+        models.SearchHistory.user_id == current_user.id,
+        models.SearchHistory.is_place == True
+    ).count()
+    
+    query_searches = total_searches - place_searches
+    
+    return {
+        "total_searches": total_searches,
+        "place_searches": place_searches,
+        "query_searches": query_searches
+    }
