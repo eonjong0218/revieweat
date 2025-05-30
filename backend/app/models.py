@@ -15,6 +15,8 @@ class User(Base):
 
     # 검색 기록과의 관계 설정
     search_histories = relationship("SearchHistory", back_populates="user", cascade="all, delete-orphan")
+    # 리뷰와의 관계 설정
+    reviews = relationship("Review", back_populates="user", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<User(id={self.id}, email={self.email}, username={self.username}, role={self.role})>"
@@ -34,3 +36,23 @@ class SearchHistory(Base):
 
     def __repr__(self):
         return f"<SearchHistory(id={self.id}, query={self.query}, is_place={self.is_place}, name={self.name}, user_id={self.user_id})>"
+
+class Review(Base):
+    __tablename__ = "reviews"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    place_name = Column(String, nullable=False)
+    place_address = Column(String, nullable=True)
+    review_date = Column(DateTime, nullable=False)  # visit_date -> review_date로 변경
+    rating = Column(String, nullable=False)
+    companion = Column(String, nullable=True)
+    review_text = Column(String, nullable=False)  # content -> review_text로 변경
+    image_paths = Column(String, nullable=True)  # image_urls -> image_paths로 변경 (파일 경로 저장)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # User와의 관계 설정
+    user = relationship("User", back_populates="reviews")
+
+    def __repr__(self):
+        return f"<Review(user_id={self.user_id}, place={self.place_name}, rating={self.rating})>"
