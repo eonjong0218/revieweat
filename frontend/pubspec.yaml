@@ -14,7 +14,7 @@ dependencies:
   flutter_native_splash: ^2.4.6
   image_picker: ^1.0.0
   http: ^0.13.5
-  http_parser: ^4.0.2  # 추가
+  http_parser: ^4.0.2 
   mime: ^1.0.2
   google_maps_flutter: ^2.5.0
   geolocator: ^9.0.2
@@ -27,6 +27,7 @@ dependencies:
     sdk: flutter
   syncfusion_flutter_datepicker: ^29.2.5
   syncfusion_flutter_core: ^29.2.5
+  flutter_dotenv: ^5.1.0  
 
 dev_dependencies:
   flutter_test:
@@ -39,6 +40,8 @@ flutter:
   assets:
     - assets/images/logo.png
     - assets/images/kakao_icon.png
+    - .env
+    
 
   fonts:
     - family: Inter

@@ -17,7 +17,7 @@ COPY . /app
 COPY wait-for-it.sh /app/wait-for-it.sh
 RUN chmod +x /app/wait-for-it.sh
 
-# 6. 환경 변수 설정 (예: 포트)
+# 6. 환경 변수 설정 
 ENV PORT=8000
 
 # 7. 컨테이너 실행 시 DB가 준비될 때까지 대기 후 FastAPI 앱 실행

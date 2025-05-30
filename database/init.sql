@@ -1,4 +1,4 @@
--- Users 테이블 (변경 없음)
+-- Users 테이블 
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
     email VARCHAR(255) UNIQUE NOT NULL,
@@ -8,7 +8,7 @@ CREATE TABLE users (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
--- Search History 테이블 (변경 없음)
+-- Search History 테이블 
 CREATE TABLE search_history (
     id SERIAL PRIMARY KEY,
     query VARCHAR(255) NOT NULL,
@@ -26,17 +26,17 @@ CREATE INDEX idx_search_history_query ON search_history(query);
 CREATE INDEX idx_search_history_name ON search_history(name);
 CREATE INDEX idx_search_history_is_place ON search_history(is_place);
 
--- Reviews 테이블 (필드명 수정)
+-- Reviews 테이블 
 CREATE TABLE reviews (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL,
     place_name VARCHAR(255) NOT NULL,
     place_address VARCHAR(255),
-    review_date TIMESTAMP NOT NULL,  -- visit_date -> review_date
+    review_date TIMESTAMP NOT NULL,  
     rating VARCHAR(10) NOT NULL,
     companion VARCHAR(255),
-    review_text TEXT NOT NULL,       -- content -> review_text
-    image_paths TEXT,                -- image_urls -> image_paths
+    review_text TEXT NOT NULL,       
+    image_paths TEXT,                
     created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );

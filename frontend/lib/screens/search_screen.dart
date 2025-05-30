@@ -3,9 +3,10 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
-
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'search_result_screen.dart';
 
+// 검색 화면 위젯
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
 
@@ -14,19 +15,40 @@ class SearchScreen extends StatefulWidget {
 }
 
 class _SearchScreenState extends State<SearchScreen> {
+  // 검색어 입력 컨트롤러
   final TextEditingController _searchController = TextEditingController();
+
+  // 장소 자동완성 결과
   List<dynamic> _places = [];
+
+  // 로딩 상태
   bool _isLoading = false;
+
+  // 디바운스 타이머
   Timer? _debounce;
 
+  // 최근 검색 목록
   List<Map<String, dynamic>> _recentSearches = [];
-  final String _googleApiKey = 'AIzaSyAufgjB4H_wW06l9FtmFz8wPTiq15ALKuU';
-  final String _baseUrl = 'http://192.168.0.6:8000';
+
+  // .env에서 가져온 환경 변수
+  late final String _googleApiKey;
+  late final String _baseUrl;
 
   @override
   void initState() {
     super.initState();
-    _loadSearchHistory();
+    _initializeEnvironmentVariables();
+    _loadSearchHistory(); // 최근 검색 기록 불러오기
+  }
+
+  // 환경 변수 초기화
+  void _initializeEnvironmentVariables() {
+    _googleApiKey = dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
+    _baseUrl = dotenv.env['API_URL'] ?? '';
+    
+    if (_googleApiKey.isEmpty || _baseUrl.isEmpty) {
+      throw Exception('환경 변수가 설정되지 않았습니다. .env 파일을 확인해주세요.');
+    }
   }
 
   @override
@@ -36,6 +58,7 @@ class _SearchScreenState extends State<SearchScreen> {
     super.dispose();
   }
 
+  // 서버에서 최근 검색 기록 불러오기
   Future<void> _loadSearchHistory() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
@@ -70,6 +93,7 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
+  // 검색어를 서버에 저장
   Future<void> _saveSearchToServer(String query, {bool isPlace = false, String? placeName}) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
@@ -115,6 +139,7 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
+  // 특정 검색 기록 삭제
   Future<void> _deleteSearchHistory(int id, int index) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
@@ -136,6 +161,7 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
+  // 전체 검색 기록 삭제
   Future<void> _deleteAllSearchHistory() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
@@ -157,6 +183,7 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
+  // Google API를 사용한 장소 자동완성 검색
   Future<void> _searchPlaces(String query) async {
     if (query.isEmpty) {
       setState(() {
@@ -206,6 +233,7 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
+  // 장소 세부 정보 가져오기 (위치, 주소 등)
   Future<Map<String, dynamic>?> _getPlaceDetails(String placeId) async {
     final String url = 'https://maps.googleapis.com/maps/api/place/details/json'
         '?place_id=$placeId'
@@ -224,6 +252,7 @@ class _SearchScreenState extends State<SearchScreen> {
     return null;
   }
 
+  // 검색어 변경 시 호출 (디바운싱 적용)
   void _onSearchChanged(String query) {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
     _debounce = Timer(const Duration(milliseconds: 500), () {
@@ -231,6 +260,7 @@ class _SearchScreenState extends State<SearchScreen> {
     });
   }
 
+  // 키보드에서 검색 제출 시
   void _onSearchSubmitted(String query) async {
     if (query.trim().isEmpty) return;
     
@@ -254,6 +284,7 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
+  // 장소 자동완성 항목 탭 시
   void _onPlaceTap(dynamic place) async {
     final placeId = place['place_id'];
     final details = await _getPlaceDetails(placeId);
@@ -292,6 +323,7 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
+  // 최근 검색 항목 탭 시
   void _onRecentSearchTap(Map<String, dynamic> searchItem) {
     final query = searchItem['is_place'] == true 
         ? (searchItem['name'] ?? searchItem['query']) 
@@ -309,6 +341,7 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
+  // 전체 삭제 확인 다이얼로그 표시
   Future<void> _showDeleteAllConfirmDialog() async {
     if (_recentSearches.isEmpty) {
       return;
@@ -349,7 +382,7 @@ class _SearchScreenState extends State<SearchScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // 상단 검색 바 영역 (뒤로가기 버튼을 오른쪽으로 이동)
+            // 검색창 UI
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 35),
               child: Container(
@@ -400,8 +433,8 @@ class _SearchScreenState extends State<SearchScreen> {
                 ),
               ),
             ),
-            
-            // 메인 콘텐츠 영역
+
+            // 검색 결과 또는 최근 검색 표시
             Expanded(
               child: _searchController.text.isNotEmpty && _places.isNotEmpty
                   ? _buildPlacesList()
@@ -415,6 +448,7 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
+  // 자동완성된 장소 리스트 빌더
   Widget _buildPlacesList() {
     return ListView.separated(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -454,11 +488,12 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
+  // 최근 검색 리스트 빌더
   Widget _buildRecentSearches() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 최근 검색 헤더
+        // 헤더 영역
         if (_recentSearches.isNotEmpty)
           Container(
             padding: const EdgeInsets.fromLTRB(20, 5, 16, 12),
@@ -489,13 +524,14 @@ class _SearchScreenState extends State<SearchScreen> {
               ],
             ),
           ),
-        
-        // 검색 기록 리스트
+
+        // 검색 항목 리스트
         Expanded(child: _buildRecentSearchList()),
       ],
     );
   }
 
+  // 최근 검색 항목 리스트 빌더
   Widget _buildRecentSearchList() {
     if (_recentSearches.isEmpty) {
       return Center(

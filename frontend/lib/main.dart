@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:logger/logger.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
@@ -10,10 +12,35 @@ import 'screens/review_final_screen.dart';
 import 'screens/review_success_screen.dart';
 import 'screens/profile_screen.dart';
 
-void main() {
+// 전역 로거 인스턴스
+final Logger logger = Logger(
+  printer: PrettyPrinter(
+    methodCount: 0,
+    errorMethodCount: 5,
+    lineLength: 50,
+    colors: true,
+    printEmojis: true,
+    printTime: true,
+  ),
+);
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  try {
+    await dotenv.load(fileName: ".env");
+    logger.i("Environment variables loaded successfully");
+    logger.d("API_URL: ${dotenv.env['API_URL']}");
+    logger.d("GOOGLE_MAPS_API_KEY loaded: ${dotenv.env['GOOGLE_MAPS_API_KEY']?.isNotEmpty ?? false}");
+  } catch (e) {
+    logger.e("Error loading .env file: $e");
+    logger.w("App will continue with default values");
+  }
+  
   runApp(const ReviewEatApp());
 }
 
+// 앱의 루트 위젯
 class ReviewEatApp extends StatelessWidget {
   const ReviewEatApp({super.key});
 
@@ -38,28 +65,38 @@ class ReviewEatApp extends StatelessWidget {
         ),
       ),
       initialRoute: '/',
+      // 라우트 설정
       onGenerateRoute: (settings) {
+        // 스플래시 화면
         if (settings.name == '/') {
           return MaterialPageRoute(
             builder: (_) => const SplashScreen(),
             settings: settings,
           );
-        } else if (settings.name == '/login') {
+        } 
+        // 로그인 화면
+        else if (settings.name == '/login') {
           return MaterialPageRoute(
             builder: (_) => const LoginScreen(),
             settings: settings,
           );
-        } else if (settings.name == '/register') {
+        } 
+        // 회원가입 화면
+        else if (settings.name == '/register') {
           return MaterialPageRoute(
             builder: (_) => const RegisterScreen(),
             settings: settings,
           );
-        } else if (settings.name == '/home') {
+        } 
+        // 홈 화면
+        else if (settings.name == '/home') {
           return MaterialPageRoute(
             builder: (_) => const HomeScreen(),
             settings: settings,
           );
-        } else if (settings.name == '/search_result') {
+        } 
+        // 검색 결과 화면
+        else if (settings.name == '/search_result') {
           final args = settings.arguments;
           String initialQuery = '';
           if (args is String) {
@@ -69,7 +106,9 @@ class ReviewEatApp extends StatelessWidget {
             builder: (_) => SearchResultScreen(initialQuery: initialQuery),
             settings: settings,
           );
-        } else if (settings.name == '/review_place_search') {
+        } 
+        // 리뷰 장소 검색 화면
+        else if (settings.name == '/review_place_search') {
           final args = settings.arguments;
           String? keyword;
           if (args is String) {
@@ -79,7 +118,9 @@ class ReviewEatApp extends StatelessWidget {
             builder: (_) => ReviewPlaceSearchScreen(keyword: keyword),
             settings: settings,
           );
-        } else if (settings.name == '/review_second') {
+        } 
+        // 리뷰 작성 - 두 번째 화면
+        else if (settings.name == '/review_second') {
           final args = settings.arguments;
           if (args is Map<String, dynamic>) {
             return MaterialPageRoute(
@@ -94,7 +135,9 @@ class ReviewEatApp extends StatelessWidget {
               settings: settings,
             );
           }
-        } else if (settings.name == '/review_final') {
+        } 
+        // 리뷰 작성 - 최종 화면
+        else if (settings.name == '/review_final') {
           final args = settings.arguments;
           if (args is Map<String, dynamic> &&
               args['place'] != null &&
@@ -118,7 +161,9 @@ class ReviewEatApp extends StatelessWidget {
               settings: settings,
             );
           }
-        } else if (settings.name == '/review_success') {
+        } 
+        // 리뷰 작성 완료 화면
+        else if (settings.name == '/review_success') {
           final args = settings.arguments;
           if (args is Map<String, dynamic> &&
               args['place'] != null &&
@@ -146,12 +191,16 @@ class ReviewEatApp extends StatelessWidget {
               settings: settings,
             );
           }
-        } else if (settings.name == '/profile') {
+        } 
+        // 프로필 화면
+        else if (settings.name == '/profile') {
           return MaterialPageRoute(
             builder: (_) => const ProfileScreen(),
             settings: settings,
           );
         }
+
+        // 정의되지 않은 라우트 처리
         return null;
       },
     );

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'home_screen.dart';
 
+// 리뷰 등록 성공 화면 StatefulWidget
 class ReviewSuccessScreen extends StatefulWidget {
   final Map<String, dynamic> place;
   final DateTime selectedDate;
@@ -27,22 +28,23 @@ class ReviewSuccessScreen extends StatefulWidget {
 }
 
 class _ReviewSuccessScreenState extends State<ReviewSuccessScreen> {
-  Timer? _timer;
-  int _remainingSeconds = 10;
+  Timer? _timer; // 자동 이동 타이머
+  int _remainingSeconds = 5; // 남은 초
 
   @override
   void initState() {
     super.initState();
-    _startCountdown();
+    _startCountdown(); // 타이머 시작
   }
 
+  // 10초 뒤 자동 홈 이동 타이머 시작
   void _startCountdown() {
     const oneSecond = Duration(seconds: 1);
     _timer = Timer.periodic(oneSecond, (Timer timer) {
       if (_remainingSeconds <= 0) {
         timer.cancel();
         if (mounted) {
-          _navigateToHome();
+          _navigateToHome(); // 타이머 종료 시 홈으로 이동
         }
       } else {
         setState(() {
@@ -54,10 +56,11 @@ class _ReviewSuccessScreenState extends State<ReviewSuccessScreen> {
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _timer?.cancel(); // 타이머 해제
     super.dispose();
   }
 
+  // 홈 화면으로 이동
   void _navigateToHome() {
     _timer?.cancel();
     Navigator.of(context).pushAndRemoveUntil(
@@ -76,7 +79,7 @@ class _ReviewSuccessScreenState extends State<ReviewSuccessScreen> {
       body: SafeArea(
         child: Stack(
           children: [
-            // X 아이콘
+            // X 아이콘 (즉시 홈 이동)
             Positioned(
               top: 20,
               right: 20,
@@ -91,9 +94,9 @@ class _ReviewSuccessScreenState extends State<ReviewSuccessScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildSuccessHeader(),
+                  _buildSuccessHeader(), // 상단 완료 메시지 및 타이머
                   const SizedBox(height: 32),
-                  _buildReviewCard(),
+                  _buildReviewCard(), // 등록한 리뷰 카드
                 ],
               ),
             ),
@@ -103,10 +106,12 @@ class _ReviewSuccessScreenState extends State<ReviewSuccessScreen> {
     );
   }
 
+  // 상단 완료 메시지 및 타이머 표시
   Widget _buildSuccessHeader() {
     return Center(
       child: Column(
         children: [
+          // 체크 아이콘 원
           Container(
             width: 64,
             height: 64,
@@ -119,7 +124,7 @@ class _ReviewSuccessScreenState extends State<ReviewSuccessScreen> {
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.blue.withValues(alpha: 0.3),
+                  color: Colors.blue.withValues(alpha: 0.3), // 변경된 부분
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -142,6 +147,7 @@ class _ReviewSuccessScreenState extends State<ReviewSuccessScreen> {
             ),
           ),
           const SizedBox(height: 8),
+          // 10초 뒤 홈 이동 안내
           RichText(
             text: TextSpan(
               style: TextStyle(
@@ -166,6 +172,7 @@ class _ReviewSuccessScreenState extends State<ReviewSuccessScreen> {
     );
   }
 
+  // 등록한 리뷰 카드 UI
   Widget _buildReviewCard() {
     return Container(
       width: double.infinity,
@@ -174,7 +181,7 @@ class _ReviewSuccessScreenState extends State<ReviewSuccessScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
+            color: Colors.black.withValues(alpha: 0.08), // 변경된 부분
             blurRadius: 20,
             offset: const Offset(0, 4),
           ),
@@ -185,19 +192,20 @@ class _ReviewSuccessScreenState extends State<ReviewSuccessScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildPlaceInfo(),
+            _buildPlaceInfo(), // 장소명, 주소
             const SizedBox(height: 20),
-            _buildMetaInfo(),
+            _buildMetaInfo(), // 날짜, 평점, 동반자
             const SizedBox(height: 24),
-            _buildImages(),
+            _buildImages(), // 첨부 사진
             const SizedBox(height: 24),
-            _buildReviewText(),
+            _buildReviewText(), // 리뷰 내용
           ],
         ),
       ),
     );
   }
 
+  // 장소명, 주소 표시
   Widget _buildPlaceInfo() {
     final name = widget.place['name'] ?? '';
     final address = widget.place['formatted_address'] ?? '';
@@ -229,6 +237,7 @@ class _ReviewSuccessScreenState extends State<ReviewSuccessScreen> {
     );
   }
 
+  // 날짜, 평점, 동반자 정보 표시
   Widget _buildMetaInfo() {
     final date = DateFormat('yyyy.MM.dd').format(widget.selectedDate);
     
@@ -256,6 +265,7 @@ class _ReviewSuccessScreenState extends State<ReviewSuccessScreen> {
     );
   }
 
+  // 개별 메타 정보 아이템
   Widget _buildMetaItem(IconData icon, String text, Color iconColor) {
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -276,6 +286,7 @@ class _ReviewSuccessScreenState extends State<ReviewSuccessScreen> {
     );
   }
 
+  // 첨부된 사진 리스트 표시
   Widget _buildImages() {
     final hasImages = widget.images.isNotEmpty;
     
@@ -308,6 +319,7 @@ class _ReviewSuccessScreenState extends State<ReviewSuccessScreen> {
             border: Border.all(color: Colors.grey[200]!),
           ),
           child: hasImages
+              // 사진 있을 때: 가로 스크롤 이미지
               ? ClipRRect(
                   borderRadius: BorderRadius.circular(12),
                   child: ListView.builder(
@@ -330,6 +342,7 @@ class _ReviewSuccessScreenState extends State<ReviewSuccessScreen> {
                     },
                   ),
                 )
+              // 사진 없을 때: 안내 메시지
               : Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -356,6 +369,7 @@ class _ReviewSuccessScreenState extends State<ReviewSuccessScreen> {
     );
   }
 
+  // 작성한 리뷰 텍스트 표시
   Widget _buildReviewText() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

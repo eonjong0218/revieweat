@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 class ReviewSecondScreen extends StatefulWidget {
+  // 선택한 장소 정보가 담긴 Map을 받음
   final Map<String, dynamic> place;
 
   const ReviewSecondScreen({super.key, required this.place});
@@ -15,10 +16,12 @@ class ReviewSecondScreen extends StatefulWidget {
 }
 
 class _ReviewSecondScreenState extends State<ReviewSecondScreen> {
+  // 사용자가 선택한 날짜, 평점, 동반인 정보 저장용 변수
   DateTime? selectedDate;
   String? selectedRating;
   String? selectedCompanion;
 
+  // 평점과 동반인 선택지 목록
   static const List<String> ratingOptions = [
     '★☆☆☆☆', '★★☆☆☆', '★★★☆☆', '★★★★☆', '★★★★★'
   ];
@@ -26,6 +29,7 @@ class _ReviewSecondScreenState extends State<ReviewSecondScreen> {
     '혼자', '친구', '연인', '가족', '기타'
   ];
 
+  // 날짜 선택 모달을 띄우는 함수
   Future<void> _showDatePickerModal(BuildContext context) async {
     await showModalBottomSheet(
       context: context,
@@ -35,6 +39,7 @@ class _ReviewSecondScreenState extends State<ReviewSecondScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) {
+        // 한국어 로케일 적용
         return Localizations(
           locale: const Locale('ko', 'KR'),
           delegates: const [
@@ -44,6 +49,7 @@ class _ReviewSecondScreenState extends State<ReviewSecondScreen> {
           ],
           child: Padding(
             padding: const EdgeInsets.all(24),
+            // Syncfusion DatePicker 테마 적용
             child: SfDateRangePickerTheme(
               data: SfDateRangePickerThemeData(
                 backgroundColor: Colors.white,
@@ -71,8 +77,10 @@ class _ReviewSecondScreenState extends State<ReviewSecondScreen> {
                 weekendDatesTextStyle: const TextStyle(color: Colors.grey),
               ),
               child: SfDateRangePicker(
+                // 단일 날짜 선택 모드
                 selectionMode: DateRangePickerSelectionMode.single,
                 initialSelectedDate: selectedDate,
+                // 날짜 선택 시 상태 갱신 및 모달 닫기
                 onSelectionChanged: (DateRangePickerSelectionChangedArgs args) {
                   if (args.value is DateTime) {
                     setState(() {
@@ -92,9 +100,11 @@ class _ReviewSecondScreenState extends State<ReviewSecondScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 위젯에 전달받은 장소 정보
     final place = widget.place;
     final name = place['name'] ?? '';
     final address = place['formatted_address'] ?? '';
+    // 위도, 경도는 기본값도 지정해둠
     final lat = place['geometry']?['location']?['lat'] ?? 35.3350;
     final lng = place['geometry']?['location']?['lng'] ?? 129.0089;
 
@@ -104,12 +114,14 @@ class _ReviewSecondScreenState extends State<ReviewSecondScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         toolbarHeight: 80,
+        // 기본 leading 아이콘 제거
         leading: const SizedBox.shrink(),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 10.0, top: 30.0),
             child: IconButton(
               icon: const Icon(Icons.arrow_back, color: Colors.black),
+              // 뒤로가기 버튼
               onPressed: () => Navigator.pop(context),
             ),
           ),
@@ -121,13 +133,17 @@ class _ReviewSecondScreenState extends State<ReviewSecondScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // 장소 위치 지도 위젯
               _buildMap(lat, lng, name),
+              // 장소 이름과 주소 정보 표시
               _buildPlaceInfo(name, address),
               const SizedBox(height: 16),
-              Container(height: 1, color: Colors.black),
+              Container(height: 1, color: Colors.black), // 구분선
               const SizedBox(height: 16),
+              // 날짜, 평점, 동반인 선택 UI
               _buildCompactSelectors(context),
               const SizedBox(height: 32),
+              // 완료 버튼
               _buildCompleteButton(),
               const SizedBox(height: 24),
             ],
@@ -137,6 +153,7 @@ class _ReviewSecondScreenState extends State<ReviewSecondScreen> {
     );
   }
 
+  // 구글 맵 위젯
   Widget _buildMap(double lat, double lng, String name) {
     return Container(
       height: 320,
@@ -159,15 +176,16 @@ class _ReviewSecondScreenState extends State<ReviewSecondScreen> {
               infoWindow: InfoWindow(title: name),
             ),
           },
-          zoomControlsEnabled: false,
+          zoomControlsEnabled: false, // 확대축소 컨트롤 비활성화
           myLocationButtonEnabled: false,
-          liteModeEnabled: true,
+          liteModeEnabled: true, // lite mode 활성화로 리소스 절약
           mapToolbarEnabled: false,
         ),
       ),
     );
   }
 
+  // 장소 이름 및 주소 텍스트 표시 위젯
   Widget _buildPlaceInfo(String name, String address) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -179,10 +197,11 @@ class _ReviewSecondScreenState extends State<ReviewSecondScreen> {
     );
   }
 
+  // 날짜, 평점, 동반인 선택 UI
   Widget _buildCompactSelectors(BuildContext context) {
     return Row(
       children: [
-        // 날짜 선택
+        // 날짜 선택 박스 (터치 시 모달 호출)
         Expanded(
           child: GestureDetector(
             onTap: () => _showDatePickerModal(context),
@@ -220,7 +239,7 @@ class _ReviewSecondScreenState extends State<ReviewSecondScreen> {
           ),
         ),
         const SizedBox(width: 6),
-        // 평점 선택
+        // 평점 선택 드롭다운
         Expanded(
           child: Container(
             height: 44,
@@ -257,7 +276,7 @@ class _ReviewSecondScreenState extends State<ReviewSecondScreen> {
           ),
         ),
         const SizedBox(width: 6),
-        // 동반인 선택
+        // 동반인 선택 드롭다운
         Expanded(
           child: Container(
             height: 44,
@@ -297,7 +316,9 @@ class _ReviewSecondScreenState extends State<ReviewSecondScreen> {
     );
   }
 
+  // 완료 버튼 위젯
   Widget _buildCompleteButton() {
+    // 모든 선택지가 선택되었는지 확인
     final isEnabled = selectedDate != null &&
         selectedRating != null &&
         selectedCompanion != null;
@@ -308,7 +329,7 @@ class _ReviewSecondScreenState extends State<ReviewSecondScreen> {
       child: ElevatedButton(
         onPressed: isEnabled
             ? () {
-                // pushNamed로 변경
+                // 모든 선택 완료 시 다음 화면으로 데이터 전달하며 이동
                 Navigator.pushNamed(
                   context,
                   '/review_final',
@@ -320,7 +341,7 @@ class _ReviewSecondScreenState extends State<ReviewSecondScreen> {
                   },
                 );
               }
-            : null,
+            : null, // 선택이 안 된 경우 버튼 비활성화
         style: ElevatedButton.styleFrom(
           backgroundColor: isEnabled ? Colors.black : Colors.grey[400],
           foregroundColor: Colors.white,

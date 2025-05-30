@@ -4,6 +4,7 @@ import 'package:syncfusion_flutter_core/theme.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+// 프로필 화면 StatefulWidget
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -12,12 +13,16 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  // 현재 선택된 탭 인덱스 (내 리뷰/공유받은 리뷰)
   int _selectedTabIndex = 0;
-  int _selectedIndex = 2; // Profile 탭이 선택된 상태
+  // 하단 네비게이션 인덱스 (Profile이 기본 선택)
+  int _selectedIndex = 2;
+  // 필터: 선택된 날짜, 평점, 동반인
   DateTime? selectedDate;
   String? selectedRating;
   String? selectedCompanion;
 
+  // 평점, 동반인 옵션 리스트
   static const List<String> ratingOptions = [
     '★☆☆☆☆', '★★☆☆☆', '★★★☆☆', '★★★★☆', '★★★★★'
   ];
@@ -25,6 +30,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     '혼자', '친구', '연인', '가족', '기타'
   ];
 
+  // 날짜 선택 모달 표시
   Future<void> _showDatePickerModal(BuildContext context) async {
     await showModalBottomSheet(
       context: context,
@@ -89,6 +95,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  // 평점 선택 모달 표시
   Future<void> _showRatingModal(BuildContext context) async {
     await showModalBottomSheet(
       context: context,
@@ -110,6 +117,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
               const SizedBox(height: 16),
+              // 평점 옵션 리스트
               ...ratingOptions.map((rating) => ListTile(
                 title: Text(rating),
                 onTap: () {
@@ -126,6 +134,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  // 동반인 선택 모달 표시
   Future<void> _showCompanionModal(BuildContext context) async {
     await showModalBottomSheet(
       context: context,
@@ -147,6 +156,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
               const SizedBox(height: 16),
+              // 동반인 옵션 리스트
               ...companionOptions.map((companion) => ListTile(
                 title: Text(companion),
                 onTap: () {
@@ -179,6 +189,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
         ),
       ),
+      // 리뷰 작성 플로팅 버튼
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           Navigator.pushNamed(context, '/review_place_search');
@@ -188,6 +199,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: const Icon(Icons.edit, color: Colors.white),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      // 하단 네비게이션 바
       bottomNavigationBar: BottomAppBar(
         height: 64,
         color: Colors.white,
@@ -208,6 +220,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  // 프로필 헤더 UI
   Widget _buildProfileHeader() {
     return Container(
       color: Colors.white,
@@ -227,7 +240,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
+                  color: Colors.black.withAlpha(25),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -278,6 +291,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  // 내 리뷰/공유받은 리뷰 탭 버튼 UI
   Widget _buildTabButtons() {
     return Container(
       color: Colors.white,
@@ -296,6 +310,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  // 개별 탭 버튼 위젯
   Widget _buildTabButton(String title, int index) {
     final isSelected = _selectedTabIndex == index;
     return GestureDetector(
@@ -326,6 +341,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  // 필터 칩(날짜, 장소, 동반여부, 평점, 찜) UI
   Widget _buildFilterChips() {
     final filters = ['날짜', '장소', '동반여부', '평점', '찜'];
 
@@ -341,6 +357,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  // 개별 필터 칩 위젯
   Widget _buildFilterChip(String label) {
     bool hasSelection = false;
     if (label == '날짜' && selectedDate != null) hasSelection = true;
@@ -350,14 +367,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return GestureDetector(
       onTap: () {
         if (hasSelection) {
-          // X 아이콘을 눌렀을 때 선택 해제
+          // X 아이콘 클릭: 선택 해제
           setState(() {
             if (label == '날짜') selectedDate = null;
             if (label == '평점') selectedRating = null;
             if (label == '동반여부') selectedCompanion = null;
           });
         } else {
-          // 필터 선택
+          // 필터 선택 모달 표시
           if (label == '날짜') {
             _showDatePickerModal(context);
           } else if (label == '평점') {
@@ -403,6 +420,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  // 필터 칩에 표시될 텍스트 반환
   String _getDisplayText(String label) {
     switch (label) {
       case '날짜':
@@ -418,6 +436,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  // 탭에 따라 (내 리뷰/공유받은 리뷰) 리스트 빌드
   Widget _buildContentList() {
     return Container(
       margin: const EdgeInsets.only(top: 8),
@@ -425,6 +444,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  // 내 리뷰 리스트 빌드
   Widget _buildMyReviews() {
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
@@ -438,7 +458,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
+                color: Colors.black.withAlpha(13),
                 blurRadius: 10,
                 offset: const Offset(0, 2),
               ),
@@ -505,6 +525,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  // 공유받은 리뷰 리스트 빌드
   Widget _buildSharedReviews() {
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
@@ -518,7 +539,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
+                color: Colors.black.withAlpha(13),
                 blurRadius: 10,
                 offset: const Offset(0, 2),
               ),
@@ -575,6 +596,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  // 하단 네비게이션 아이템 클릭 시 동작
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
@@ -596,6 +618,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  // 하단 네비게이션 아이템 UI
   Widget _buildNavItem(IconData icon, String label, int index) {
     final isSelected = _selectedIndex == index;
     return GestureDetector(

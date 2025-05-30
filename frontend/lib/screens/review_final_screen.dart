@@ -8,8 +8,10 @@ import 'package:http_parser/http_parser.dart';
 import 'package:mime/mime.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:developer' as developer;
 
+// 리뷰 최종 작성 화면 위젯
 class ReviewFinalScreen extends StatefulWidget {
   final Map<String, dynamic> place;
   final DateTime selectedDate;
@@ -37,32 +39,29 @@ class _ReviewFinalScreenState extends State<ReviewFinalScreen> {
   static const int maxFileSize = 5 * 1024 * 1024;
   static const Set<String> allowedExtensions = {'.jpg', '.jpeg', '.png', '.gif', '.webp'};
 
+  // 갤러리/카메라 접근 권한 요청
   Future<bool> _requestPermissions() async {
     if (Platform.isAndroid) {
       Map<Permission, PermissionStatus> permissions = await [
         Permission.photos,
         Permission.camera,
       ].request();
-      
       bool allGranted = permissions.values.every(
         (status) => status == PermissionStatus.granted || status == PermissionStatus.limited
       );
-      
       if (!allGranted) {
         // 권한이 거부된 경우 설정으로 이동
         await openAppSettings();
         return false;
       }
-      
       return true;
     }
     return true;
   }
 
+  // 이미지 다중 선택 및 추가
   Future<void> _pickImages() async {
-    // 권한 요청 먼저 실행
     bool hasPermission = await _requestPermissions();
-    
     if (!hasPermission) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -78,23 +77,21 @@ class _ReviewFinalScreenState extends State<ReviewFinalScreen> {
       if (kDebugMode) {
         developer.log('선택된 이미지 개수: ${images.length}', name: 'ImagePicker');
       }
-      
       for (var image in images) {
         if (kDebugMode) {
           developer.log('선택된 이미지: ${image.path}', name: 'ImagePicker');
         }
       }
-      
       setState(() {
         _selectedImages.addAll(images.map((xfile) => File(xfile.path)));
       });
-      
       if (kDebugMode) {
         developer.log('현재 총 이미지 개수: ${_selectedImages.length}', name: 'ImagePicker');
       }
     }
   }
 
+  // 리뷰 등록(서버 전송) 기능
   Future<void> _submitReview() async {
     if (_reviewController.text.trim().isEmpty) return;
 
@@ -107,27 +104,21 @@ class _ReviewFinalScreenState extends State<ReviewFinalScreen> {
         developer.log('=== 리뷰 저장 시작 ===', name: 'ReviewSubmit');
         developer.log('선택된 이미지 개수: ${_selectedImages.length}', name: 'ReviewSubmit');
       }
-      
-      // 이미지 파일 검증
+
+      // 이미지 파일 검증 (크기, 확장자)
       for (int i = 0; i < _selectedImages.length; i++) {
         var imageFile = _selectedImages[i];
-        
         if (kDebugMode) {
           developer.log('이미지 $i: ${imageFile.path}', name: 'ReviewSubmit');
           developer.log('파일 존재 여부: ${await imageFile.exists()}', name: 'ReviewSubmit');
         }
-        
-        // 파일 크기 확인
         int fileSize = await imageFile.length();
         if (kDebugMode) {
           developer.log('파일 크기: $fileSize bytes', name: 'ReviewSubmit');
         }
-        
         if (fileSize > maxFileSize) {
           throw Exception('이미지 크기가 너무 큽니다 (최대 5MB)');
         }
-        
-        // 파일 확장자 확인
         String extension = imageFile.path.split('.').last.toLowerCase();
         if (!allowedExtensions.contains('.$extension')) {
           throw Exception('지원하지 않는 이미지 형식입니다');
@@ -137,67 +128,56 @@ class _ReviewFinalScreenState extends State<ReviewFinalScreen> {
       // 저장된 토큰 가져오기
       SharedPreferences prefs = await SharedPreferences.getInstance();
       String? token = prefs.getString('access_token');
-      
       if (token == null || token.isEmpty) {
         throw Exception('로그인이 필요합니다.');
       }
 
-      var uri = Uri.parse('http://192.168.0.6:8000/api/reviews'); 
+      final apiUrl = dotenv.env['API_URL'] ?? 'http://localhost:8000';
+      var uri = Uri.parse('$apiUrl/api/reviews');
       var request = http.MultipartRequest('POST', uri);
-      
+
       // Authorization 헤더 추가
       request.headers['Authorization'] = 'Bearer $token';
 
-      // 장소 정보
+      // 장소 정보, 날짜, 평점, 동반자, 리뷰 텍스트 추가
       request.fields['place_name'] = widget.place['name']?.toString() ?? '';
       request.fields['place_address'] = widget.place['formatted_address']?.toString() ?? '';
-
-      // 날짜, 평점, 동반자
       request.fields['review_date'] = widget.selectedDate.toIso8601String();
       request.fields['rating'] = widget.selectedRating;
       request.fields['companion'] = widget.selectedCompanion;
-
-      // 리뷰 텍스트
       request.fields['review_text'] = _reviewController.text.trim();
 
-      // 이미지 파일들 (멀티파트) - 필드명 수정
+      // 이미지 파일들 멀티파트로 추가
       if (kDebugMode) {
         developer.log('이미지 파일 추가 시작...', name: 'ReviewSubmit');
       }
-      
       for (int i = 0; i < _selectedImages.length; i++) {
         var imageFile = _selectedImages[i];
         if (kDebugMode) {
           developer.log('처리 중인 이미지 $i: ${imageFile.path}', name: 'ReviewSubmit');
         }
-        
         final String mimeType = lookupMimeType(imageFile.path) ?? 'image/jpeg';
         final List<String> mimeSplit = mimeType.split('/');
-
         var multipartFile = await http.MultipartFile.fromPath(
-          'images', // 백엔드에서 기대하는 필드명으로 수정
+          'images',
           imageFile.path,
           contentType: MediaType(mimeSplit[0], mimeSplit[1]),
         );
-        
         request.files.add(multipartFile);
-        
         if (kDebugMode) {
           developer.log('이미지 $i 추가 완료: ${multipartFile.filename}, 크기: ${multipartFile.length}', name: 'ReviewSubmit');
         }
       }
-      
       if (kDebugMode) {
         developer.log('총 추가된 파일 개수: ${request.files.length}', name: 'ReviewSubmit');
       }
 
+      // 서버에 요청 전송
       final response = await request.send();
-
       if (response.statusCode == 200 || response.statusCode == 201) {
         if (kDebugMode) {
           developer.log('✅ 리뷰 저장 성공', name: 'ReviewSubmit');
         }
-        
         // 저장 성공 시 success 화면으로 이동
         if (!mounted) return;
         Navigator.pushReplacementNamed(
@@ -226,13 +206,10 @@ class _ReviewFinalScreenState extends State<ReviewFinalScreen> {
       if (kDebugMode) {
         developer.log('❌ 리뷰 저장 오류: $e', name: 'ReviewSubmit');
       }
-      
-      // 에러 처리
+      // 에러 처리 및 사용자 안내 다이얼로그
       if (!mounted) return;
-      
       String errorMessage = '리뷰 저장 중 오류가 발생했습니다.';
       String errorString = e.toString();
-      
       if (errorString.contains('SocketException')) {
         errorMessage = '네트워크 연결을 확인해주세요.';
       } else if (errorString.contains('TimeoutException')) {
@@ -246,7 +223,6 @@ class _ReviewFinalScreenState extends State<ReviewFinalScreen> {
       } else if (errorString.contains('지원하지 않는 이미지 형식')) {
         errorMessage = '지원하지 않는 이미지 형식입니다 (JPG, PNG만 가능)';
       }
-      
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -316,6 +292,7 @@ class _ReviewFinalScreenState extends State<ReviewFinalScreen> {
 
   @override
   void dispose() {
+    // 리뷰 입력 컨트롤러 해제
     _reviewController.dispose();
     super.dispose();
   }
@@ -329,8 +306,10 @@ class _ReviewFinalScreenState extends State<ReviewFinalScreen> {
     final String rating = widget.selectedRating;
     final String companion = widget.selectedCompanion;
 
+    // 등록 버튼 활성화 조건
     final bool isReady = _reviewController.text.trim().isNotEmpty && !_isLoading;
 
+    // 전체 UI
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -358,8 +337,10 @@ class _ReviewFinalScreenState extends State<ReviewFinalScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // 선택 정보 표시 영역
               _buildInfoSection(name, address, date, rating, companion),
               const SizedBox(height: 24),
+              // 이미지 첨부 영역
               _buildImagePickerSection(),
               const SizedBox(height: 24),
               const Text(
@@ -367,6 +348,7 @@ class _ReviewFinalScreenState extends State<ReviewFinalScreen> {
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
               const SizedBox(height: 8),
+              // 리뷰 입력 필드
               TextField(
                 controller: _reviewController,
                 maxLines: 8,
@@ -391,6 +373,7 @@ class _ReviewFinalScreenState extends State<ReviewFinalScreen> {
                 ),
               ),
               const SizedBox(height: 32),
+              // 리뷰 등록 버튼
               SizedBox(
                 width: double.infinity,
                 height: 48,
@@ -417,6 +400,7 @@ class _ReviewFinalScreenState extends State<ReviewFinalScreen> {
     );
   }
 
+  // 장소, 날짜, 평점, 동반자 정보 표시 영역
   Widget _buildInfoSection(
       String name, String address, String date, String rating, String companion) {
     return Container(
@@ -462,6 +446,7 @@ class _ReviewFinalScreenState extends State<ReviewFinalScreen> {
     );
   }
 
+  // 이미지 첨부 및 미리보기 영역
   Widget _buildImagePickerSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -502,7 +487,7 @@ class _ReviewFinalScreenState extends State<ReviewFinalScreen> {
                     child: const Icon(Icons.add_a_photo, color: Colors.grey),
                   ),
                 ),
-              // 선택된 이미지들
+              // 선택된 이미지 미리보기 및 삭제 버튼
               ..._selectedImages.asMap().entries.map((entry) {
                 int index = entry.key;
                 File file = entry.value;

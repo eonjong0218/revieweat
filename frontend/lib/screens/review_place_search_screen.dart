@@ -3,9 +3,10 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:geolocator/geolocator.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class ReviewPlaceSearchScreen extends StatefulWidget {
-  final String? keyword;
+  final String? keyword; // 초기 검색어를 받아올 수 있음
 
   const ReviewPlaceSearchScreen({super.key, this.keyword});
 
@@ -14,22 +15,23 @@ class ReviewPlaceSearchScreen extends StatefulWidget {
 }
 
 class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
-  GoogleMapController? _mapController;
-  List<dynamic> _predictions = [];
-  LatLng _initialPosition = const LatLng(35.3350, 129.0089);
-  final TextEditingController _searchController = TextEditingController();
-  final String _googleApiKey = 'AIzaSyAufgjB4H_wW06l9FtmFz8wPTiq15ALKuU';
-  Set<Marker> _markers = {};
-  Map<String, dynamic>? _selectedPlace;
+  GoogleMapController? _mapController; // 구글맵 컨트롤러
+  List<dynamic> _predictions = []; // 자동완성 검색 결과 저장 리스트
+  LatLng _initialPosition = const LatLng(35.3350, 129.0089); // 초기 지도 위치 (부산 근처)
+  final TextEditingController _searchController = TextEditingController(); // 검색창 컨트롤러
+  final String _googleApiKey = dotenv.env['GOOGLE_MAPS_API_KEY'] ?? ''; // .env에서 API 키 읽기
+  Set<Marker> _markers = {}; // 지도에 표시할 마커들
+  Map<String, dynamic>? _selectedPlace; // 선택된 장소 정보 저장
 
-  Position? _currentPosition;
-  final Map<String, LatLng> _predictionLocations = {};
+  Position? _currentPosition; // 현재 위치 저장
+  final Map<String, LatLng> _predictionLocations = {}; // 자동완성 결과 장소의 좌표 저장
 
   @override
   void initState() {
     super.initState();
-    _setInitialLocation();
+    _setInitialLocation(); // 초기 위치 세팅 (현재 위치 기반)
 
+    // 초기 keyword가 있으면 검색창에 세팅하고 검색 수행
     if (widget.keyword != null && widget.keyword!.isNotEmpty) {
       _searchController.text = widget.keyword!;
       _onSearchChanged(widget.keyword!);
@@ -38,10 +40,11 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
 
   @override
   void dispose() {
-    _searchController.dispose();
+    _searchController.dispose(); // 텍스트 컨트롤러 해제
     super.dispose();
   }
 
+  // 현재 위치를 얻어서 초기 위치로 설정
   Future<void> _setInitialLocation() async {
     final position = await _determinePosition();
     setState(() {
@@ -50,6 +53,7 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
     });
   }
 
+  // 위치 권한 체크 및 현재 위치 반환
   Future<Position> _determinePosition() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
@@ -71,8 +75,10 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
     return await Geolocator.getCurrentPosition();
   }
 
+  // 검색어 변경 시 자동완성 API 호출
   void _onSearchChanged(String value) async {
     if (value.isEmpty) {
+      // 검색어가 비면 결과 초기화
       setState(() {
         _predictions = [];
         _predictionLocations.clear();
@@ -85,7 +91,7 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
         '?input=${Uri.encodeComponent(value)}'
         '&key=$_googleApiKey'
         '&language=ko'
-        '&components=country:kr';
+        '&components=country:kr'; // 한국 지역으로 제한
 
     final response = await http.get(Uri.parse(url));
 
@@ -94,12 +100,13 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
       if (data['status'] == 'OK') {
         setState(() {
           _predictions = data['predictions'] ?? [];
-          _predictionLocations.clear();
+          _predictionLocations.clear(); // 위치 정보는 상세조회에서 받음
         });
       }
     }
   }
 
+  // 자동완성 결과 선택 시 장소 상세정보 API 호출 및 지도 업데이트
   void _onPredictionTap(dynamic prediction) async {
     final placeId = prediction['place_id'];
 
@@ -108,7 +115,7 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
         '?place_id=$placeId'
         '&key=$_googleApiKey'
         '&language=ko'
-        '&fields=name,formatted_address,geometry,place_id';
+        '&fields=name,formatted_address,geometry,place_id'; // 필요한 필드만 요청
 
     final response = await http.get(Uri.parse(url));
 
@@ -119,13 +126,14 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
         final location = place['geometry']['location'];
         final latLng = LatLng(location['lat'], location['lng']);
 
+        // 선택한 위치로 지도 카메라 이동
         if (_mapController != null) {
           _mapController!.animateCamera(CameraUpdate.newLatLngZoom(latLng, 16));
         }
 
         setState(() {
           _selectedPlace = place;
-          _predictionLocations[placeId] = latLng;
+          _predictionLocations[placeId] = latLng; // 위치 저장
           _markers = {
             Marker(
               markerId: const MarkerId('selected_place'),
@@ -142,9 +150,9 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
     }
   }
 
+  // 선택된 장소가 있을 때 다음 화면으로 이동
   void _onPlaceSelected() {
     if (_selectedPlace != null) {
-      // pushNamed로 변경
       Navigator.pushNamed(
         context,
         '/review_second',
@@ -153,6 +161,7 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
     }
   }
 
+  // 현재 위치를 다시 받아와서 지도 이동
   Future<void> _moveToCurrentLocation() async {
     try {
       final position = await _determinePosition();
@@ -172,6 +181,7 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
     }
   }
 
+  // 두 좌표 사이 거리 계산 (미터 단위)
   double _calculateDistance(LatLng start, LatLng end) {
     return Geolocator.distanceBetween(
       start.latitude,
@@ -190,12 +200,13 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
         child: SafeArea(
           child: Column(
             children: [
+              // 검색창 및 뒤로가기 버튼 영역
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 child: Row(
                   children: [
                     GestureDetector(
-                      onTap: () => Navigator.pop(context),
+                      onTap: () => Navigator.pop(context), // 뒤로가기
                       child: const Icon(Icons.arrow_back, color: Colors.black87),
                     ),
                     const SizedBox(width: 12),
@@ -208,7 +219,7 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
                         ),
                         child: TextField(
                           controller: _searchController,
-                          onChanged: _onSearchChanged,
+                          onChanged: _onSearchChanged, // 검색어 변경 콜백
                           decoration: const InputDecoration(
                             hintText: '장소 및 주소 검색',
                             hintStyle: TextStyle(color: Colors.grey, fontSize: 15),
@@ -224,6 +235,7 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
                 ),
               ),
               const SizedBox(height: 0),
+              // 지도 영역 + 현재 위치 버튼
               Stack(
                 children: [
                   Container(
@@ -234,7 +246,7 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
                       border: Border.all(color: Colors.grey.shade200),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
+                          color: Colors.black.withValues(alpha: 0.05), // 그림자 효과
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -248,9 +260,9 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
                           target: _initialPosition,
                           zoom: 14,
                         ),
-                        myLocationEnabled: true,
-                        myLocationButtonEnabled: false,
-                        markers: _markers,
+                        myLocationEnabled: true, // 현재 위치 표시
+                        myLocationButtonEnabled: false, // 기본 위치 버튼 숨김
+                        markers: _markers, // 마커 표시
                       ),
                     ),
                   ),
@@ -258,7 +270,7 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
                     bottom: 100,
                     right: 30,
                     child: GestureDetector(
-                      onTap: _moveToCurrentLocation,
+                      onTap: _moveToCurrentLocation, // 현재 위치로 이동 버튼
                       child: Container(
                         width: 40,
                         height: 40,
@@ -285,6 +297,7 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
                   ),
                 ],
               ),
+              // 구분선 역할하는 작은 바
               Container(
                 width: 40,
                 height: 4,
@@ -294,11 +307,13 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
+              // 검색 결과 리스트 혹은 빈 상태 표시 영역
               Expanded(
                 child: _predictions.isNotEmpty
                     ? _buildSearchResults()
                     : _buildEmptyState(),
               ),
+              // 선택 완료 버튼 영역
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
@@ -315,7 +330,7 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
                   width: double.infinity,
                   height: 48,
                   child: ElevatedButton(
-                    onPressed: _selectedPlace != null ? _onPlaceSelected : null,
+                    onPressed: _selectedPlace != null ? _onPlaceSelected : null, // 선택 시만 활성화
                     style: ElevatedButton.styleFrom(
                       backgroundColor:
                           _selectedPlace != null ? Colors.black : Colors.grey[400],
@@ -338,6 +353,7 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
     );
   }
 
+  // 검색 결과 리스트 UI 빌드
   Widget _buildSearchResults() {
     return ListView.separated(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -405,13 +421,14 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            onTap: () => _onPredictionTap(prediction),
+            onTap: () => _onPredictionTap(prediction), // 장소 선택 시 동작
           ),
         );
       },
     );
   }
 
+  // 검색 결과 없을 때 빈 상태 UI
   Widget _buildEmptyState() {
     return Center(
       child: Column(

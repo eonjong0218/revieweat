@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+// 로그인 화면 StatefulWidget
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -11,37 +13,44 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  // 입력 컨트롤러 및 상태 변수
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   bool _isFormValid = false;
 
+  // 포커스 노드 및 에러 메시지
   final _emailFocusNode = FocusNode();
   final _passwordFocusNode = FocusNode();
-
   String? _emailError;
   String? _passwordError;
 
+  // 비밀번호 표시 여부
   bool _obscurePassword = true;
 
   @override
   void initState() {
     super.initState();
+
+    // 이메일 입력 감지 및 유효성 검사
     emailController.addListener(() {
       _updateFormState();
       _validateEmail();
     });
 
+    // 비밀번호 입력 감지 및 유효성 검사
     passwordController.addListener(() {
       _updateFormState();
       _validatePassword();
     });
 
+    // 이메일 포커스 해제 시 유효성 검사
     _emailFocusNode.addListener(() {
       if (!_emailFocusNode.hasFocus && emailController.text.isNotEmpty) {
         _validateEmail();
       }
     });
 
+    // 비밀번호 포커스 해제 시 유효성 검사
     _passwordFocusNode.addListener(() {
       if (!_passwordFocusNode.hasFocus && passwordController.text.isNotEmpty) {
         _validatePassword();
@@ -49,6 +58,7 @@ class _LoginScreenState extends State<LoginScreen> {
     });
   }
 
+  // 이메일 형식 유효성 검사
   void _validateEmail() {
     setState(() {
       if (emailController.text.isEmpty) {
@@ -61,6 +71,7 @@ class _LoginScreenState extends State<LoginScreen> {
     });
   }
 
+  // 비밀번호 길이 유효성 검사
   void _validatePassword() {
     setState(() {
       if (passwordController.text.isEmpty) {
@@ -75,6 +86,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
+    // 컨트롤러 및 포커스 노드 정리
     emailController.dispose();
     passwordController.dispose();
     _emailFocusNode.dispose();
@@ -82,6 +94,7 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  // 입력 폼 상태 업데이트
   void _updateFormState() {
     setState(() {
       _isFormValid = emailController.text.isNotEmpty &&
@@ -90,7 +103,7 @@ class _LoginScreenState extends State<LoginScreen> {
     });
   }
 
-  // 커스텀 오버레이 메시지 함수 (withOpacity를 withAlpha로 교체)
+  // 커스텀 메시지 팝업 표시 함수
   void _showCustomMessage(String message, bool isSuccess) {
     showDialog(
       context: context,
@@ -117,6 +130,7 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  // 아이콘 원형 박스
                   Container(
                     width: 60,
                     height: 60,
@@ -133,6 +147,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
+                  // 메시지 텍스트
                   Text(
                     message.replaceAll('이메일 또는 비밀번호가 올바르지 않습니다', '이메일 또는 비밀번호가\n올바르지 않습니다'),
                     maxLines: 2,
@@ -152,7 +167,7 @@ class _LoginScreenState extends State<LoginScreen> {
       },
     );
 
-    // 성공 시 2초, 실패 시 3초 후 자동으로 닫기
+    // 일정 시간 후 자동 닫힘 및 성공 시 홈으로 이동
     Future.delayed(Duration(seconds: isSuccess ? 2 : 3), () {
       if (mounted && Navigator.canPop(context)) {
         Navigator.of(context).pop();
@@ -163,13 +178,16 @@ class _LoginScreenState extends State<LoginScreen> {
     });
   }
 
+  // 로그인 처리 함수
   void _handleLogin() async {
     _validateEmail();
     _validatePassword();
 
     if (_emailError == null && _passwordError == null && _isFormValid) {
+      final apiUrl = dotenv.env['API_URL'] ?? 'http://localhost:8000';
+      
       final response = await http.post(
-        Uri.parse('http://192.168.0.6:8000/token'),
+        Uri.parse('$apiUrl/token'),
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: {
           'username': emailController.text,
@@ -178,6 +196,7 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (response.statusCode == 200) {
+        // 로그인 성공 시 토큰 저장
         final data = json.decode(response.body);
         final token = data['access_token'];
 
@@ -187,6 +206,7 @@ class _LoginScreenState extends State<LoginScreen> {
         if (!mounted) return;
         _showCustomMessage('로그인 성공!', true);
       } else {
+        // 실패 시 에러 메시지 표시
         final errorData = json.decode(response.body);
         if (mounted) {
           _showCustomMessage(errorData['detail'] ?? '로그인 실패', false);
@@ -205,15 +225,15 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // 제목 텍스트
               const Text(
                 '이메일과 비밀번호를\n입력해주세요.',
                 style: TextStyle(fontSize: 25, fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 20),
-              const Text(
-                '이메일',
-                style: TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500),
-              ),
+
+              // 이메일 입력 필드
+              const Text('이메일', style: TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500)),
               const SizedBox(height: 6),
               TextField(
                 controller: emailController,
@@ -228,11 +248,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   errorStyle: const TextStyle(color: Colors.red, fontSize: 12),
                 ),
               ),
+
               const SizedBox(height: 16),
-              const Text(
-                '비밀번호',
-                style: TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500),
-              ),
+
+              // 비밀번호 입력 필드
+              const Text('비밀번호', style: TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500)),
               const SizedBox(height: 6),
               TextField(
                 controller: passwordController,
@@ -258,7 +278,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
               ),
+
               const SizedBox(height: 26),
+
+              // 로그인 버튼
               SizedBox(
                 width: double.infinity,
                 height: 48,
@@ -273,7 +296,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: const Text('로그인'),
                 ),
               ),
+
               const SizedBox(height: 12),
+
+              // 회원가입 / 계정찾기 / 비밀번호재설정
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -298,7 +324,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ],
               ),
+
               const SizedBox(height: 80),
+
+              // 카카오 로그인 버튼
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

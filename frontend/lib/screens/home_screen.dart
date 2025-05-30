@@ -5,6 +5,7 @@ import 'search_screen.dart';
 import 'review_place_search_screen.dart';
 import 'profile_screen.dart';
 
+/// 홈 화면 StatefulWidget
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -16,18 +17,25 @@ class _HomeScreenState extends State<HomeScreen> {
   late GoogleMapController _mapController;
   bool _mapControllerReady = false;
 
+  // 초기 위치 (부산대학교)
   LatLng _initialPosition = const LatLng(35.3350, 129.0089);
+
+  // 지도 마커 모음
   final Set<Marker> _markers = {};
+
+  // 현재 선택된 하단 네비게이션 인덱스
   int _selectedIndex = 0;
 
   @override
   void initState() {
     super.initState();
+    // 현재 위치 요청 및 지도 초기 위치 설정
     _determinePosition().then((position) {
       final userLocation = LatLng(position.latitude, position.longitude);
       setState(() {
         _initialPosition = userLocation;
       });
+      // 위치 받아온 뒤 지도 이동
       if (_mapControllerReady) {
         _mapController.animateCamera(CameraUpdate.newCameraPosition(
           CameraPosition(target: userLocation, zoom: 14),
@@ -38,6 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  /// 현재 위치 권한 및 정보 요청
   Future<Position> _determinePosition() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
@@ -59,11 +68,13 @@ class _HomeScreenState extends State<HomeScreen> {
     return await Geolocator.getCurrentPosition();
   }
 
+  /// 지도 생성 시 호출되는 콜백
   void _onMapCreated(GoogleMapController controller) {
     _mapController = controller;
     _mapControllerReady = true;
   }
 
+  /// 지도에 마커 추가
   void _addMarker(LatLng position) {
     final String markerId = 'marker_${_markers.length}';
     setState(() {
@@ -81,6 +92,7 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  /// 하단 네비게이션 아이템 선택 처리
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
@@ -94,6 +106,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  /// 현재 위치로 지도 이동
   void _moveToCurrentLocation() async {
     try {
       final Position position = await _determinePosition();
@@ -106,6 +119,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  /// 장소 리뷰 등록 화면으로 이동
   void _goToReviewPlaceSearchScreen() {
     Navigator.push(
       context,
@@ -119,6 +133,7 @@ class _HomeScreenState extends State<HomeScreen> {
       resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
+          // 지도 표시
           GoogleMap(
             onMapCreated: _onMapCreated,
             initialCameraPosition: CameraPosition(
@@ -130,6 +145,8 @@ class _HomeScreenState extends State<HomeScreen> {
             myLocationButtonEnabled: false,
             onTap: _addMarker,
           ),
+
+          // 현재 위치 이동 버튼
           Positioned(
             right: 12,
             top: 620,
@@ -159,12 +176,15 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
+
+          // 검색창 및 필터 버튼
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 35),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // 검색창
                   GestureDetector(
                     onTap: () {
                       Navigator.push(
@@ -202,6 +222,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   const SizedBox(height: 10),
+                  // 필터 버튼 목록
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
@@ -220,6 +241,8 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
+
+      // 리뷰 작성 이동 버튼
       floatingActionButton: FloatingActionButton(
         onPressed: _goToReviewPlaceSearchScreen,
         shape: const CircleBorder(),
@@ -227,6 +250,8 @@ class _HomeScreenState extends State<HomeScreen> {
         child: const Icon(Icons.edit, color: Colors.white),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+
+      // 하단 네비게이션 바
       bottomNavigationBar: BottomAppBar(
         height: 64,
         color: Colors.white,
@@ -238,7 +263,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             _buildNavItem(Icons.home_rounded, 'Home', 0),
             _buildNavItem(Icons.event_rounded, 'History', 1),
-            const SizedBox(width: 48),
+            const SizedBox(width: 48), // FAB 위치
             _buildNavItem(Icons.person_rounded, 'Profile', 2),
             _buildNavItem(Icons.settings_rounded, 'Settings', 3),
           ],
@@ -247,11 +272,12 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  /// 필터 버튼 생성
   Widget _buildFilterButton(String label) {
     return Padding(
       padding: const EdgeInsets.only(right: 4),
       child: GestureDetector(
-        onTap: () {},
+        onTap: () {}, // 필터 기능 추후 구현 가능
         child: Container(
           width: 68,
           height: 24,
@@ -271,6 +297,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  /// 하단 네비게이션 아이템 생성
   Widget _buildNavItem(IconData icon, String label, int index) {
     final isSelected = _selectedIndex == index;
     return GestureDetector(
