@@ -19,7 +19,7 @@ jobs:
           flutter-version: '3.7.2'  # Flutter 버전 지정
 
       - run: |
-          cd revieweat/frontend  # Flutter 프로젝트 폴더로 이동
+          cd frontend  # Flutter 프로젝트 폴더로 이동
           flutter pub get       # 의존성 패키지 설치
           flutter analyze       # 코드 정적 분석 수행
           flutter test          # 단위 테스트 실행
