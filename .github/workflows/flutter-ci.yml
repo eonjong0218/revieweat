@@ -17,7 +17,7 @@ jobs:
 
       - uses: subosito/flutter-action@v2  # Flutter SDK 설치
         with:
-          flutter-version: 'stable'  # 최신 안정 버전 자동 선택
+          flutter-version: '3.20.0'  # 최신 버전
 
       - name: Show Flutter and Dart version
         run: flutter --version  # Flutter, Dart 버전 확인
