@@ -1,0 +1,24 @@
+name: Flutter CI  # 워크플로우 이름
+
+on:
+  push:
+    branches: [main]  # main 브랜치에 push될 때 실행
+  pull_request:
+    branches: [main]  # main 브랜치로 PR 생성/수정 시 실행
+  schedule:
+    - cron: '0 15 * * *'  # 매일 한국 자정에 자동 실행
+
+jobs:
+  flutter-build:
+    runs-on: ubuntu-latest  # 우분투 최신 버전에서 실행
+
+    steps:
+      - uses: actions/checkout@v3  # 저장소 코드 가져오기
+      - uses: subosito/flutter-action@v2  # Flutter 설치
+        with:
+          flutter-version: '3.7.2'  # Flutter 버전 지정
+      - run: flutter pub get  # 의존성 설치
+      - run: flutter analyze  # 코드 정적 분석 실행
+      - run: flutter test  # 테스트 실행
+      - run: flutter build apk --debug  # 디버그 모드 APK 빌드
+
