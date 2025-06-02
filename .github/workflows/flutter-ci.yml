@@ -13,14 +13,27 @@ jobs:
     runs-on: ubuntu-latest  # 최신 우분투 환경에서 실행
 
     steps:
-      - uses: actions/checkout@v3  # 저장소 코드를 체크아웃(가져오기)
+      - uses: actions/checkout@v3  # 저장소 코드 체크아웃
+
       - uses: subosito/flutter-action@v2  # Flutter SDK 설치
         with:
           flutter-version: '3.7.2'  # Flutter 버전 지정
 
-      - run: |
-          cd frontend  # Flutter 프로젝트 폴더로 이동
-          flutter pub get       # 의존성 패키지 설치
-          flutter analyze       # 코드 정적 분석 수행
-          flutter test          # 단위 테스트 실행
-          flutter build apk --debug  # 디버그 모드 APK 빌드
+      - name: Show Flutter and Dart version
+        run: flutter --version  # Flutter, Dart 버전 확인
+
+      - name: Install dependencies
+        working-directory: frontend  # frontend 폴더 내에서 실행
+        run: flutter pub get  # 패키지 의존성 설치
+
+      - name: Analyze code
+        working-directory: frontend  # frontend 폴더 내에서 실행
+        run: flutter analyze  # 코드 정적 분석 수행
+
+      - name: Run tests
+        working-directory: frontend  # frontend 폴더 내에서 실행
+        run: flutter test  # 단위 테스트 실행
+
+      - name: Build debug APK
+        working-directory: frontend  # frontend 폴더 내에서 실행
+        run: flutter build apk --debug  # 디버그 모드 APK 빌드
