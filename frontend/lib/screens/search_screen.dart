@@ -58,7 +58,7 @@ class _SearchScreenState extends State<SearchScreen> {
     super.dispose();
   }
 
-  // 서버에서 최근 검색 기록 불러오기
+  // 서버에서 최근 검색 기록 불러오기 (UTF-8 디코딩 적용)
   Future<void> _loadSearchHistory() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
@@ -76,7 +76,7 @@ class _SearchScreenState extends State<SearchScreen> {
     );
 
     if (response.statusCode == 200) {
-      final List<dynamic> data = json.decode(response.body);
+      final List<dynamic> data = json.decode(utf8.decode(response.bodyBytes));
       if (mounted) {
         setState(() {
           _recentSearches = data.map((item) => {
@@ -93,7 +93,7 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
-  // 검색어를 서버에 저장
+  // 검색어를 서버에 저장 (UTF-8 디코딩 적용)
   Future<void> _saveSearchToServer(String query, {bool isPlace = false, String? placeName}) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
@@ -118,7 +118,7 @@ class _SearchScreenState extends State<SearchScreen> {
     );
 
     if ((response.statusCode == 200 || response.statusCode == 201) && mounted) {
-      final responseData = json.decode(response.body);
+      final responseData = json.decode(utf8.decode(response.bodyBytes));
       
       setState(() {
         _recentSearches.removeWhere((item) => 
@@ -139,7 +139,7 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
-  // 특정 검색 기록 삭제
+  // 특정 검색 기록 삭제 (UTF-8 디코딩 적용)
   Future<void> _deleteSearchHistory(int id, int index) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
@@ -161,7 +161,7 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
-  // 전체 검색 기록 삭제
+  // 전체 검색 기록 삭제 (UTF-8 디코딩 적용)
   Future<void> _deleteAllSearchHistory() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');

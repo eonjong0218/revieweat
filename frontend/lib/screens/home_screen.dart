@@ -227,11 +227,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
-                        _buildFilterButton('중심점'),
                         _buildFilterButton('카테고리'),
                         _buildFilterButton('방문상태'),
-                        _buildFilterButton('평점'),
                         _buildFilterButton('동반여부'),
+                        _buildFilterButton('평점'),
+                        _buildFilterButton('찜'),
                       ],
                     ),
                   ),
