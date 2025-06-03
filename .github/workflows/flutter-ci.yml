@@ -1,0 +1,42 @@
+name: Flutter CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 15 * * *'  # 매일 한국 시간 자정(00:00)에 자동 실행
+
+jobs:
+  flutter-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.27.0'
+          channel: 'stable'
+
+      - name: Show Flutter and Dart version
+        run: flutter --version
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: flutter pub get
+
+      - name: Analyze code
+        working-directory: frontend
+        run: flutter analyze
+
+      - name: Run tests
+        working-directory: frontend
+        run: flutter test
+
+      - name: Build debug APK
+        working-directory: frontend
+        run: flutter build apk --debug
