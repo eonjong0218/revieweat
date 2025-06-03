@@ -82,14 +82,14 @@ jobs:
           elapsed=0
           
           while [ $elapsed -lt $timeout ]; do
-            if docker-compose exec -T db pg_isready -U postgres -d revieweat; then
+            if docker compose exec -T db pg_isready -U postgres -d revieweat; then
               echo "✅ PostgreSQL is ready after ${elapsed}s!"
               break
             fi
             
             if [ $elapsed -ge $timeout ]; then
               echo "❌ PostgreSQL failed to be ready after ${timeout}s"
-              docker-compose logs db
+              docker compose logs db
               exit 1
             fi
             
@@ -105,7 +105,7 @@ jobs:
           # 테이블 존재 확인
           tables=("users" "search_history" "reviews")
           for table in "${tables[@]}"; do
-            result=$(docker-compose exec -T db psql -U postgres -d revieweat -t -c "
+            result=$(docker compose exec -T db psql -U postgres -d revieweat -t -c "
               SELECT EXISTS (
                 SELECT FROM information_schema.tables 
                 WHERE table_schema = 'public' 
@@ -123,14 +123,14 @@ jobs:
           
           # 인덱스 확인
           echo "🔍 Checking ReviewEat database indexes..."
-          indexes=$(docker-compose exec -T db psql -U postgres -d revieweat -t -c "
+          indexes=$(docker compose exec -T db psql -U postgres -d revieweat -t -c "
             SELECT count(*) FROM pg_indexes WHERE schemaname = 'public';
           ")
           echo "✅ Found $(echo $indexes | tr -d ' ') indexes in database"
           
           # 외래키 관계 확인
           echo "🔗 Checking foreign key relationships..."
-          fk_count=$(docker-compose exec -T db psql -U postgres -d revieweat -t -c "
+          fk_count=$(docker compose exec -T db psql -U postgres -d revieweat -t -c "
             SELECT count(*) FROM information_schema.table_constraints 
             WHERE constraint_type = 'FOREIGN KEY' AND table_schema = 'public';
           ")
@@ -151,7 +151,7 @@ jobs:
             if [ $elapsed -ge $timeout ]; then
               echo "❌ FastAPI backend failed to be ready after ${timeout}s"
               echo "=== Backend Logs ==="
-              docker-compose logs backend
+              docker compose logs backend
               exit 1
             fi
             
@@ -211,13 +211,13 @@ jobs:
           
           # 1. 사용자 생성 테스트
           echo "Testing User CRUD operations..."
-          docker-compose exec -T db psql -U postgres -d revieweat -c "
+          docker compose exec -T db psql -U postgres -d revieweat -c "
             INSERT INTO users (email, username, hashed_password, role) 
             VALUES ('citest@revieweat.com', 'revieweat_ci_user', '\$2b\$12\$test.hash.here', 'user')
             ON CONFLICT (email) DO NOTHING;
           "
           
-          user_id=$(docker-compose exec -T db psql -U postgres -d revieweat -t -c "
+          user_id=$(docker compose exec -T db psql -U postgres -d revieweat -t -c "
             SELECT id FROM users WHERE email = 'citest@revieweat.com';
           ")
           user_id=$(echo $user_id | tr -d ' ')
@@ -231,7 +231,7 @@ jobs:
           
           # 2. 리뷰 생성 테스트
           echo "Testing Review CRUD operations..."
-          docker-compose exec -T db psql -U postgres -d revieweat -c "
+          docker compose exec -T db psql -U postgres -d revieweat -c "
             INSERT INTO reviews (user_id, place_name, place_address, review_date, rating, companion, review_text, image_paths) 
             VALUES (
               $user_id,
@@ -245,7 +245,7 @@ jobs:
             );
           "
           
-          review_count=$(docker-compose exec -T db psql -U postgres -d revieweat -t -c "
+          review_count=$(docker compose exec -T db psql -U postgres -d revieweat -t -c "
             SELECT COUNT(*) FROM reviews WHERE user_id = $user_id;
           ")
           
@@ -258,12 +258,12 @@ jobs:
           
           # 3. 검색 기록 생성 테스트
           echo "Testing SearchHistory CRUD operations..."
-          docker-compose exec -T db psql -U postgres -d revieweat -c "
+          docker compose exec -T db psql -U postgres -d revieweat -c "
             INSERT INTO search_history (query, is_place, name, user_id) 
             VALUES ('ReviewEat CI 검색 테스트', true, 'CI 테스트 장소', $user_id);
           "
           
-          search_count=$(docker-compose exec -T db psql -U postgres -d revieweat -t -c "
+          search_count=$(docker compose exec -T db psql -U postgres -d revieweat -t -c "
             SELECT COUNT(*) FROM search_history WHERE user_id = $user_id;
           ")
           
@@ -276,7 +276,7 @@ jobs:
           
           # 4. 관계 테이블 조인 테스트
           echo "Testing table relationships..."
-          join_result=$(docker-compose exec -T db psql -U postgres -d revieweat -t -c "
+          join_result=$(docker compose exec -T db psql -U postgres -d revieweat -t -c "
             SELECT u.username, COUNT(r.id) as review_count, COUNT(s.id) as search_count
             FROM users u
             LEFT JOIN reviews r ON u.id = r.user_id
@@ -288,7 +288,7 @@ jobs:
           
           # 5. 테스트 데이터 정리
           echo "Cleaning up test data..."
-          docker-compose exec -T db psql -U postgres -d revieweat -c "
+          docker compose exec -T db psql -U postgres -d revieweat -c "
             DELETE FROM search_history WHERE user_id = $user_id;
             DELETE FROM reviews WHERE user_id = $user_id;
             DELETE FROM users WHERE email = 'citest@revieweat.com';
@@ -300,16 +300,16 @@ jobs:
           echo "📁 Testing ReviewEat file upload functionality..."
           
           # uploads 디렉토리 확인
-          if docker-compose exec -T backend test -d "uploads"; then
+          if docker compose exec -T backend test -d "uploads"; then
             echo "✅ uploads directory exists in backend container"
-            docker-compose exec -T backend ls -la uploads/ || echo "uploads directory is empty (expected)"
+            docker compose exec -T backend ls -la uploads/ || echo "uploads directory is empty (expected)"
           else
             echo "ℹ️ uploads directory will be created when needed"
           fi
           
           # 이미지 처리 관련 패키지 확인
           echo "📷 Checking image processing capabilities..."
-          docker-compose exec -T backend python -c "
+          docker compose exec -T backend python -c "
           try:
               import PIL
               print('✅ PIL (Pillow) available for image processing')
@@ -333,7 +333,7 @@ jobs:
           
           # 데이터베이스 성능 확인
           echo "🗄️ Database performance check:"
-          docker-compose exec -T db psql -U postgres -d revieweat -c "
+          docker compose exec -T db psql -U postgres -d revieweat -c "
             SELECT 
               schemaname,
               tablename,
@@ -347,7 +347,7 @@ jobs:
           
           # 활성 연결 수 확인
           echo "🔗 Active database connections:"
-          docker-compose exec -T db psql -U postgres -d revieweat -c "
+          docker compose exec -T db psql -U postgres -d revieweat -c "
             SELECT count(*) as active_connections,
                    (SELECT count(*) FROM users) as total_users,
                    (SELECT count(*) FROM reviews) as total_reviews,
@@ -358,7 +358,7 @@ jobs:
           
           # 최종 컨테이너 상태
           echo "🏥 Final ReviewEat service status:"
-          docker-compose ps
+          docker compose ps
 
       - name: Show detailed logs on failure
         if: failure()
@@ -366,22 +366,22 @@ jobs:
           echo "=== 🔍 REVIEWEAT CI DEBUGGING INFORMATION ==="
           
           echo "=== Container Status ==="
-          docker-compose ps
+          docker compose ps
           
           echo "=== Backend Container Logs ==="
-          docker-compose logs backend
+          docker compose logs backend
           
           echo "=== Database Container Logs ==="
-          docker-compose logs db
+          docker compose logs db
           
           echo "=== Environment Variables Check ==="
-          docker-compose exec -T backend env | grep -E "(DATABASE_URL|SECRET_KEY)" || echo "Could not read env vars"
+          docker compose exec -T backend env | grep -E "(DATABASE_URL|SECRET_KEY)" || echo "Could not read env vars"
           
           echo "=== Network Connectivity ==="
-          docker-compose exec -T backend ping -c 3 db || echo "Cannot ping database"
+          docker compose exec -T backend ping -c 3 db || echo "Cannot ping database"
           
           echo "=== Database Connection Test ==="
-          docker-compose exec -T backend python -c "
+          docker compose exec -T backend python -c "
           import os
           import psycopg2
           try:
@@ -396,6 +396,6 @@ jobs:
         if: always()
         run: |
           echo "🧹 Cleaning up ReviewEat CI environment..."
-          docker-compose down -v
+          docker compose down -v
           docker system prune -f
           echo "✅ ReviewEat CI cleanup completed"
