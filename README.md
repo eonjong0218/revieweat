@@ -40,13 +40,6 @@ ReviewEat은 이런 한계를 보완해
 **리뷰 작성**
 - 위치 검색 지원
 - 사진 업로드, 리뷰 작성, 평점 부여, 동반상태 추가
-- 공개 범위 선택  
-  🔒 나만 보기  
-  🔗 비공개 링크 공유 (개별 URL 발급)
-
-**프라이빗 리뷰 공유**
-- 링크 기반 안전한 리뷰 공유
-- 링크 수신자만 열람 가능 (그룹·친구 기능은 일단 없음)
 
 **마이페이지**
 - 내가 쓴 리뷰 모아보기
@@ -60,6 +53,12 @@ ReviewEat은 이런 한계를 보완해
 | Backend    | FastAPI         | Python 기반 고성능 API 서버                 |
 | DB   | PostgreSQL      | 사용자, 리뷰, 음식점 데이터 저장              |
 | Deployment | Docker Compose  | 백엔드, DB 컨테이너화하여 통합 관리            |
+
+## 🚀 CI/CD 워크플로우
+GitHub Actions를 통한 자동화된 빌드 및 테스트 파이프라인 구축
+
+- **Frontend CI**: Flutter 앱의 자동 빌드, 테스트, 코드 분석, 디버그 APK 빌드를 수행합니다.
+- **Backend & Database CI**: Docker Compose를 사용하여 FastAPI 백엔드와 PostgreSQL 데이터베이스를 통합 테스트하고, API 엔드포인트 및 DB 스키마 검증을 자동화합니다.
 
 ## 📑 프로젝트 개발 방법론
 본 프로젝트는 **애자일(Agile) 방법론** 기반으로 개발되었습니다.
@@ -81,16 +80,16 @@ ReviewEat 프로젝트에 관심 가져주셔서 감사합니다.
 
 1. 본 리포지토리를 Fork 합니다.
 2. 새로운 브랜치를 생성합니다.
-    ```bash
+    ```
     git checkout -b feature/원하는기능이름
     ```
 3. 원하는 기능을 추가하거나 버그를 수정합니다.
 4. 변경 사항을 커밋합니다.
-    ```bash
+    ```
     git commit -m "설명에 맞는 커밋 메시지"
     ```
 5. 원격 브랜치로 푸시합니다.
-    ```bash
+    ```
     git push origin feature/원하는기능이름
     ```
 6. 본 리포지토리에 Pull Request를 생성합니다.
