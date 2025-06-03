@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:io';
+import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
@@ -178,39 +180,57 @@ class _LoginScreenState extends State<LoginScreen> {
     });
   }
 
-  // 로그인 처리 함수
+  // 로그인 처리 함수 (예외 처리 추가)
   void _handleLogin() async {
-    _validateEmail();
-    _validatePassword();
+    try {
+      _validateEmail();
+      _validatePassword();
 
-    if (_emailError == null && _passwordError == null && _isFormValid) {
-      final apiUrl = dotenv.env['API_URL'] ?? 'http://localhost:8000';
-      
-      final response = await http.post(
-        Uri.parse('$apiUrl/token'),
-        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: {
-          'username': emailController.text,
-          'password': passwordController.text,
-        },
-      );
+      if (_emailError == null && _passwordError == null && _isFormValid) {
+        final apiUrl = dotenv.env['API_URL'] ?? 'http://localhost:8000';
+        
+        final response = await http.post(
+          Uri.parse('$apiUrl/token'),
+          headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+          body: {
+            'username': emailController.text,
+            'password': passwordController.text,
+          },
+        ).timeout(Duration(seconds: 10));
 
-      if (response.statusCode == 200) {
-        // 로그인 성공 시 토큰 저장
-        final data = json.decode(response.body);
-        final token = data['access_token'];
+        if (response.statusCode == 200) {
+          // 로그인 성공 시 토큰 저장
+          final data = json.decode(response.body);
+          final token = data['access_token'];
 
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('access_token', token);
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('access_token', token);
 
-        if (!mounted) return;
-        _showCustomMessage('로그인 성공!', true);
-      } else {
-        // 실패 시 에러 메시지 표시 (UTF-8 디코딩 적용)
-        final errorData = json.decode(utf8.decode(response.bodyBytes));
-        if (mounted) {
-          _showCustomMessage(errorData['detail'] ?? '로그인 실패', false);
+          if (!mounted) return;
+          _showCustomMessage('로그인 성공!', true);
+        } else {
+          // 실패 시 에러 메시지 표시 (UTF-8 디코딩 적용)
+          final errorData = json.decode(utf8.decode(response.bodyBytes));
+          if (mounted) {
+            _showCustomMessage(errorData['detail'] ?? '로그인 실패', false);
+          }
         }
+      }
+    } on SocketException {
+      if (mounted) {
+        _showCustomMessage('인터넷 연결을 확인해주세요', false);
+      }
+    } on TimeoutException {
+      if (mounted) {
+        _showCustomMessage('서버 응답 시간이 초과되었습니다', false);
+      }
+    } on FormatException {
+      if (mounted) {
+        _showCustomMessage('서버 응답 형식이 올바르지 않습니다', false);
+      }
+    } catch (e) {
+      if (mounted) {
+        _showCustomMessage('로그인 중 오류가 발생했습니다', false);
       }
     }
   }
