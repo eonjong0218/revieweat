@@ -14,33 +14,29 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4  # 최신 버전 사용
+        uses: actions/checkout@v4
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.3'  # 안정적인 최신 버전
+          flutter-version: '3.24.3'
           channel: 'stable'
 
       - name: Show Flutter and Dart version
         run: flutter --version
 
       - name: Install dependencies
-        run: flutter pub get  # working-directory 제거 (루트에서 실행)
+        working-directory: frontend
+        run: flutter pub get
 
       - name: Analyze code
+        working-directory: frontend
         run: flutter analyze
 
       - name: Run tests
+        working-directory: frontend
         run: flutter test
 
       - name: Build debug APK
+        working-directory: frontend
         run: flutter build apk --debug
-
-      # 선택사항: APK 아티팩트 업로드
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: debug-apk
-          path: build/app/outputs/flutter-apk/app-debug.apk
-
