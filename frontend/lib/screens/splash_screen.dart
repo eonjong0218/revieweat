@@ -10,13 +10,23 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  Timer? _timer;
+
   @override
   void initState() {
     super.initState();
     // 4초 후 로그인 화면으로 자동 이동
-    Timer(const Duration(seconds: 4), () {
-      Navigator.pushReplacementNamed(context, '/login');
+    _timer = Timer(const Duration(seconds: 4), () {
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/login');
+      }
     });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel(); // 타이머 취소하여 메모리 누수 방지
+    super.dispose();
   }
 
   @override
