@@ -1,39 +1,46 @@
-name: Flutter CI  # 워크플로우 이름
+name: Flutter CI
 
 on:
   push:
-    branches: [main]  # main 브랜치에 push될 때 실행
+    branches: [main]
   pull_request:
-    branches: [main]  # main 브랜치로 PR 생성/수정 시 실행
+    branches: [main]
   schedule:
     - cron: '0 15 * * *'  # 매일 한국 시간 자정(00:00)에 자동 실행
 
 jobs:
   flutter-build:
-    runs-on: ubuntu-latest  # 최신 우분투 환경에서 실행
+    runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3  # 저장소 코드 체크아웃
+      - name: Checkout repository
+        uses: actions/checkout@v4  # 최신 버전 사용
 
-      - uses: subosito/flutter-action@v2  # Flutter SDK 설치
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.29.0'  # 최신 버전
+          flutter-version: '3.24.3'  # 안정적인 최신 버전
+          channel: 'stable'
 
       - name: Show Flutter and Dart version
-        run: flutter --version  # Flutter, Dart 버전 확인
+        run: flutter --version
 
       - name: Install dependencies
-        working-directory: frontend  # frontend 폴더 내에서 실행
-        run: flutter pub get  # 패키지 의존성 설치
+        run: flutter pub get  # working-directory 제거 (루트에서 실행)
 
       - name: Analyze code
-        working-directory: frontend  # frontend 폴더 내에서 실행
-        run: flutter analyze  # 코드 정적 분석 수행
+        run: flutter analyze
 
       - name: Run tests
-        working-directory: frontend  # frontend 폴더 내에서 실행
-        run: flutter test  # 단위 테스트 실행
+        run: flutter test
 
       - name: Build debug APK
-        working-directory: frontend  # frontend 폴더 내에서 실행
-        run: flutter build apk --debug  # 디버그 모드 APK 빌드
+        run: flutter build apk --debug
+
+      # 선택사항: APK 아티팩트 업로드
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
+
