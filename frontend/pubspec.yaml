@@ -46,12 +46,12 @@ flutter:
   fonts:
     - family: Inter
       fonts:
-        - asset: assets/fonts/inter-Regular.ttf
-        - asset: assets/fonts/inter-SemiBold.ttf
+        - asset: assets/fonts/Inter-Regular.ttf
+        - asset: assets/fonts/Inter-SemiBold.ttf
           weight: 600
-        - asset: assets/fonts/inter-Bold.ttf
+        - asset: assets/fonts/Inter-Bold.ttf
           weight: 700
-        - asset: assets/fonts/inter-Black.ttf
+        - asset: assets/fonts/Inter-Black.ttf
           weight: 900
 
 flutter_native_splash:
