@@ -212,8 +212,6 @@ class _ReviewFinalScreenState extends State<ReviewFinalScreen> {
         errorMessage = '네트워크 연결을 확인해주세요.';
       } else if (errorString.contains('TimeoutException')) {
         errorMessage = '서버 응답 시간이 초과되었습니다.';
-      } else if (errorString.contains('로그인이 필요합니다')) {
-        errorMessage = '로그인이 필요합니다.';
       } else if (errorString.contains('인증이 만료되었습니다')) {
         errorMessage = '인증이 만료되었습니다. 다시 로그인해주세요.';
       } else if (errorString.contains('이미지 크기가 너무 큽니다')) {
