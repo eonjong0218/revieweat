@@ -70,10 +70,10 @@ jobs:
       - name: Build and start ReviewEat services
         run: |
           echo "🐳 Building and starting ReviewEat Docker Compose services..."
-          docker-compose up -d --build
+          docker compose up -d --build
           
           echo "📊 Initial container status:"
-          docker-compose ps
+          docker compose ps
 
       - name: Wait for PostgreSQL database
         run: |
