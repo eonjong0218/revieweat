@@ -22,7 +22,7 @@ dependencies:
   permission_handler: ^11.0.1
   location: ^5.0.3
   logger: ^1.1.0
-  intl: ^0.19.0
+  intl: ^0.20.2
   flutter_localizations:
     sdk: flutter
   syncfusion_flutter_datepicker: ^29.2.5

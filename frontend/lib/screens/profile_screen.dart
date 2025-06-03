@@ -13,8 +13,6 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  // 현재 선택된 탭 인덱스 (내 리뷰/공유받은 리뷰)
-  int _selectedTabIndex = 0;
   // 하단 네비게이션 인덱스 (Profile이 기본 선택)
   int _selectedIndex = 2;
   // 필터: 선택된 날짜, 평점, 동반인
@@ -180,11 +178,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       body: SafeArea(
         child: Column(
           children: [
+            // 상단 여백만 추가
+            const SizedBox(height: 40),
             _buildProfileHeader(),
-            _buildTabButtons(),
             _buildFilterChips(),
             Expanded(
-              child: _buildContentList(),
+              child: _buildMyReviews(),
             ),
           ],
         ),
@@ -291,56 +290,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // 내 리뷰/공유받은 리뷰 탭 버튼 UI
-  Widget _buildTabButtons() {
-    return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
-      child: Row(
-        children: [
-          Expanded(
-            child: _buildTabButton('내 리뷰', 0),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _buildTabButton('공유받은 리뷰', 1),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // 개별 탭 버튼 위젯
-  Widget _buildTabButton(String title, int index) {
-    final isSelected = _selectedTabIndex == index;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedTabIndex = index;
-        });
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        height: 48,
-        decoration: BoxDecoration(
-          color: isSelected ? Colors.black : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-          border: isSelected ? null : Border.all(color: Colors.grey[300]!),
-        ),
-        child: Center(
-          child: Text(
-            title,
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: isSelected ? Colors.white : Colors.grey[700],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   // 필터 칩(날짜, 장소, 동반여부, 평점, 찜) UI
   Widget _buildFilterChips() {
     final filters = ['날짜', '장소', '동반여부', '평점', '찜'];
@@ -436,163 +385,87 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // 탭에 따라 (내 리뷰/공유받은 리뷰) 리스트 빌드
-  Widget _buildContentList() {
-    return Container(
-      margin: const EdgeInsets.only(top: 8),
-      child: _selectedTabIndex == 0 ? _buildMyReviews() : _buildSharedReviews(),
-    );
-  }
-
   // 내 리뷰 리스트 빌드
   Widget _buildMyReviews() {
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      itemCount: 4,
-      itemBuilder: (context, index) {
-        return Container(
-          margin: const EdgeInsets.only(bottom: 16),
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withAlpha(13),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(12),
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+        itemCount: 4,
+        itemBuilder: (context, index) {
+          return Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(13),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.restaurant_rounded,
+                        color: Colors.grey[600],
+                        size: 24,
+                      ),
                     ),
-                    child: Icon(
-                      Icons.restaurant_rounded,
-                      color: Colors.grey[600],
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '맛집 리뷰 #${index + 1}',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            ...List.generate(5, (i) => Icon(
-                              Icons.star_rounded,
-                              size: 16,
-                              color: i < 4 ? Colors.amber : Colors.grey[300],
-                            )),
-                            const SizedBox(width: 8),
-                            Text(
-                              '2024.05.${20 + index}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[600],
-                              ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '맛집 리뷰 #${index + 1}',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
                             ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  // 공유받은 리뷰 리스트 빌드
-  Widget _buildSharedReviews() {
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      itemCount: 3,
-      itemBuilder: (context, index) {
-        return Container(
-          margin: const EdgeInsets.only(bottom: 16),
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withAlpha(13),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      color: Colors.blue[100],
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      Icons.share_rounded,
-                      color: Colors.blue[600],
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '공유받은 리뷰 #${index + 1}',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '친구로부터 공유됨',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey[600],
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              ...List.generate(5, (i) => Icon(
+                                Icons.star_rounded,
+                                size: 16,
+                                color: i < 4 ? Colors.amber : Colors.grey[300],
+                              )),
+                              const SizedBox(width: 8),
+                              Text(
+                                '2024.05.${20 + index}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        );
-      },
+                  ],
+                ),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 
