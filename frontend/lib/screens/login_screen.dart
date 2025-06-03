@@ -206,8 +206,8 @@ class _LoginScreenState extends State<LoginScreen> {
         if (!mounted) return;
         _showCustomMessage('로그인 성공!', true);
       } else {
-        // 실패 시 에러 메시지 표시
-        final errorData = json.decode(response.body);
+        // 실패 시 에러 메시지 표시 (UTF-8 디코딩 적용)
+        final errorData = json.decode(utf8.decode(response.bodyBytes));
         if (mounted) {
           _showCustomMessage(errorData['detail'] ?? '로그인 실패', false);
         }
