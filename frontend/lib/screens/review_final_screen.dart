@@ -59,21 +59,20 @@ class _ReviewFinalScreenState extends State<ReviewFinalScreen> {
     return true;
   }
 
-  // 이미지 다중 선택 및 추가
-  Future<void> _pickImages() async {
-    bool hasPermission = await _requestPermissions();
-    if (!hasPermission) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('이미지 접근 권한이 필요합니다.')),
-      );
-      return;
-    }
+    // 이미지 다중 선택 및 추가
+    Future<void> _pickImages() async {
+      bool hasPermission = await _requestPermissions();
+      if (!hasPermission) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('이미지 접근 권한이 필요합니다.')),
+        );
+        return;
+      }
 
-    final ImagePicker picker = ImagePicker();
-    final List<XFile>? images = await picker.pickMultiImage();
+      final ImagePicker picker = ImagePicker();
+      final List<XFile> images = await picker.pickMultiImage();
 
-    if (images != null) {
       if (kDebugMode) {
         developer.log('선택된 이미지 개수: ${images.length}', name: 'ImagePicker');
       }
@@ -89,7 +88,6 @@ class _ReviewFinalScreenState extends State<ReviewFinalScreen> {
         developer.log('현재 총 이미지 개수: ${_selectedImages.length}', name: 'ImagePicker');
       }
     }
-  }
 
   // 리뷰 등록(서버 전송) 기능
   Future<void> _submitReview() async {
