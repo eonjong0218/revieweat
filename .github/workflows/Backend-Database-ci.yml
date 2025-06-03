@@ -13,6 +13,7 @@ on:
       - 'backend/**'
       - 'docker-compose.yml'
       - 'database/**'
+  workflow_dispatch:
   schedule:
     - cron: '0 15 * * *'  # 매일 한국 시간 자정(00:00)에 자동 실행
 
