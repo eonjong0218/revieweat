@@ -291,7 +291,7 @@ class _ReviewSecondScreenState extends State<ReviewSecondScreen> {
                 value: selectedCompanion,
                 hint: Row(
                   children: const [
-                    Icon(Icons.group_outlined, size: 18, color: Colors.blueGrey),
+                    Icon(Icons.group_outlined, size: 18, color: Colors.purple),
                     SizedBox(width: 2),
                     Text('동반인', style: TextStyle(fontSize: 14, color: Colors.grey)),
                   ],
