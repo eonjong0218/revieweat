@@ -350,11 +350,8 @@ class _SearchScreenState extends State<SearchScreen> {
       _isLoading = true;
     });
 
-    // 음식 관련 키워드를 쿼리에 추가하여 더 정확한 결과 얻기
-    final String enhancedQuery = '$query 음식점 OR $query 카페 OR $query 레스토랑';
-    
     final String url = 'https://maps.googleapis.com/maps/api/place/autocomplete/json'
-        '?input=${Uri.encodeComponent(query)}' // 원본 쿼리 사용
+        '?input=${Uri.encodeComponent(query)}'
         '&key=$_googleApiKey'
         '&language=ko'
         '&components=country:kr';
@@ -609,7 +606,7 @@ class _SearchScreenState extends State<SearchScreen> {
                         textInputAction: TextInputAction.search,
                         autofocus: true,
                         decoration: const InputDecoration(
-                          hintText: '맛집, 카페, 음식점 검색',
+                          hintText: '장소 및 주소 검색',
                           hintStyle: TextStyle(color: Colors.grey),
                           border: InputBorder.none,
                           contentPadding: EdgeInsets.zero,
@@ -787,7 +784,7 @@ class _SearchScreenState extends State<SearchScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              '맛집이나 카페를 검색해보세요',
+              '맛집을 검색해보세요',
               style: TextStyle(
                 color: Colors.grey[400],
                 fontSize: 14,
