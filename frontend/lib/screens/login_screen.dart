@@ -344,29 +344,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ],
               ),
-
-              const SizedBox(height: 80),
-
-              // 카카오 로그인 버튼
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ElevatedButton.icon(
-                    onPressed: () {},
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFFE812),
-                      foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(horizontal: 40),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                    icon: Image.asset('assets/images/kakao_icon.png', height: 20),
-                    label: const Text(
-                      '카카오 로그인',
-                      style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
-                    ),
-                  ),
-                ],
-              ),
             ],
           ),
         ),
