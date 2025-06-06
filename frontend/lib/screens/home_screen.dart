@@ -507,7 +507,7 @@ class _HomeScreenState extends State<HomeScreen> {
         onPressed: _goToReviewPlaceSearchScreen,
         shape: const CircleBorder(),
         backgroundColor: Colors.black,
-        child: const Icon(Icons.edit, color: Colors.white),
+        child: const Icon(Icons.edit_square , color: Colors.white),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
 
