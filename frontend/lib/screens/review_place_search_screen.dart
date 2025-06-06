@@ -434,7 +434,7 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.location_on_outlined, size: 64, color: Colors.grey[300]),
+          Icon(Icons.restaurant_menu, size: 64, color: Colors.grey[300]),
           const SizedBox(height: 16),
           Text(
             '장소를 검색해보세요',

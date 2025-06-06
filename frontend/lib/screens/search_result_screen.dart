@@ -11,7 +11,7 @@ class SearchResultScreen extends StatefulWidget {
   final bool isSpecificPlace;
   final String? placeId;
   final Map<String, dynamic>? placeDetails;
-  final Map<String, dynamic>? categoryFilter; // 추가
+  final Map<String, dynamic>? categoryFilter;
 
   const SearchResultScreen({
     super.key, 
@@ -19,7 +19,7 @@ class SearchResultScreen extends StatefulWidget {
     this.isSpecificPlace = false,
     this.placeId,
     this.placeDetails,
-    this.categoryFilter, // 추가
+    this.categoryFilter,
   });
 
   @override
@@ -36,6 +36,84 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
   double _sheetPosition = 0.35;
 
   final String _apiKey = dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
+
+  // 음식 관련 타입들 (더 엄격한 필터링)
+  static const Set<String> _foodRelatedTypes = {
+    'restaurant',
+    'food',
+    'meal_delivery',
+    'meal_takeaway',
+    'bakery',
+    'cafe',
+    'bar',
+    'night_club',
+    'liquor_store',
+  };
+
+  // 제외할 타입들 (음식과 무관한 장소들)
+  static const Set<String> _excludedTypes = {
+    'university',
+    'school',
+    'hospital',
+    'bank',
+    'atm',
+    'gas_station',
+    'pharmacy',
+    'post_office',
+    'police',
+    'fire_station',
+    'local_government_office',
+    'courthouse',
+    'embassy',
+    'library',
+    'museum',
+    'church',
+    'mosque',
+    'synagogue',
+    'hindu_temple',
+    'cemetery',
+    'funeral_home',
+    'car_dealer',
+    'car_rental',
+    'car_repair',
+    'car_wash',
+    'beauty_salon',
+    'hair_care',
+    'spa',
+    'gym',
+    'dentist',
+    'doctor',
+    'veterinary_care',
+    'real_estate_agency',
+    'insurance_agency',
+    'lawyer',
+    'accounting',
+    'travel_agency',
+    'lodging',
+    'campground',
+    'rv_park',
+    'tourist_attraction',
+    'amusement_park',
+    'aquarium',
+    'zoo',
+    'park',
+    'stadium',
+    'movie_theater',
+    'bowling_alley',
+    'casino',
+    'shopping_mall',
+    'department_store',
+    'electronics_store',
+    'furniture_store',
+    'hardware_store',
+    'home_goods_store',
+    'jewelry_store',
+    'shoe_store',
+    'clothing_store',
+    'book_store',
+    'bicycle_store',
+    'pet_store',
+  };
 
   @override
   void initState() {
@@ -89,6 +167,76 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
     return await Geolocator.getCurrentPosition();
   }
 
+  // 음식 관련 장소인지 확인하는 함수 (더 엄격한 필터링)
+  bool _isFoodRelatedPlace(dynamic place) {
+    final List<dynamic> types = place['types'] ?? [];
+    
+    // 먼저 제외할 타입이 있는지 확인
+    for (String type in types) {
+      if (_excludedTypes.contains(type)) {
+        return false; // 제외 타입이 하나라도 있으면 제외
+      }
+    }
+    
+    // 음식 관련 타입이 있는지 확인
+    bool hasValidType = false;
+    for (String type in types) {
+      if (_foodRelatedTypes.contains(type)) {
+        hasValidType = true;
+        break;
+      }
+    }
+    
+    // 타입으로 확인되지 않으면 키워드로 확인
+    if (!hasValidType) {
+      final String placeName = place['name']?.toLowerCase() ?? '';
+      final String vicinity = place['vicinity']?.toLowerCase() ?? '';
+      
+      // 음식 관련 키워드들 (더 구체적으로)
+      const List<String> foodKeywords = [
+        '음식점', '레스토랑', '식당', '카페', '커피숍', '커피전문점',
+        '베이커리', '빵집', '제과점', '치킨', '피자', '햄버거', '분식',
+        '한식', '중식', '일식', '양식', '이탈리안', '멕시칸', '태국',
+        '술집', '바', '펍', '호프', '맥주', '소주', '와인', '칵테일',
+        '디저트', '아이스크림', '케이크', '도넛', '마카롱', '와플',
+        '배달', '테이크아웃', '포장', '치킨집', '피자집', '족발',
+        '보쌈', '삼겹살', '갈비', '불고기', '냉면', '라면', '우동',
+        '파스타', '스테이크', '샐러드', '샌드위치', '버거', '타코',
+        'restaurant', 'cafe', 'coffee', 'bakery', 'bar', 'pub',
+        'pizza', 'chicken', 'burger', 'food', 'dining', 'bistro',
+        'grill', 'kitchen', 'eatery', 'diner', 'tavern'
+      ];
+      
+      // 제외할 키워드들
+      const List<String> excludeKeywords = [
+        '대학교', '대학', '학교', '병원', '은행', '주유소', '약국',
+        '우체국', '경찰서', '소방서', '시청', '구청', '도서관',
+        '박물관', '교회', '성당', '절', '사찰', '공원', '놀이터',
+        '마트', '백화점', '쇼핑몰', '편의점', '미용실', '헬스장',
+        'university', 'college', 'school', 'hospital', 'bank',
+        'station', 'pharmacy', 'office', 'library', 'museum',
+        'church', 'temple', 'park', 'mall', 'market'
+      ];
+      
+      // 제외 키워드가 있으면 제외
+      for (String keyword in excludeKeywords) {
+        if (placeName.contains(keyword) || vicinity.contains(keyword)) {
+          return false;
+        }
+      }
+      
+      // 음식 키워드가 있으면 포함
+      for (String keyword in foodKeywords) {
+        if (placeName.contains(keyword) || vicinity.contains(keyword)) {
+          hasValidType = true;
+          break;
+        }
+      }
+    }
+    
+    return hasValidType;
+  }
+
   // 카테고리 기반 검색 함수 추가
   Future<void> _performCategoryBasedSearch() async {
     setState(() {
@@ -139,7 +287,7 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
             final place = results[i];
             final location = place['geometry']?['location'];
             
-            if (location != null) {
+            if (location != null && _isFoodRelatedPlace(place)) {
               final placeLat = location['lat']?.toDouble() ?? 0.0;
               final placeLng = location['lng']?.toDouble() ?? 0.0;
               
@@ -352,7 +500,7 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
           final place = results[i];
           final location = place['geometry']?['location'];
           
-          if (location != null) {
+          if (location != null && _isFoodRelatedPlace(place)) {
             final lat = location['lat']?.toDouble() ?? 0.0;
             final lng = location['lng']?.toDouble() ?? 0.0;
             
@@ -417,14 +565,12 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
     final typeMap = {
       'restaurant': '음식점',
       'cafe': '카페',
-      'tourist_attraction': '관광지',
-      'shopping_mall': '쇼핑몰',
-      'hospital': '병원',
-      'school': '학교',
-      'gas_station': '주유소',
-      'bank': '은행',
-      'pharmacy': '약국',
-      'convenience_store': '편의점',
+      'bakery': '베이커리',
+      'bar': '술집',
+      'meal_delivery': '배달',
+      'meal_takeaway': '테이크아웃',
+      'night_club': '나이트클럽',
+      'liquor_store': '주류판매점',
     };
     
     for (final type in types) {
@@ -433,28 +579,7 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
       }
     }
     
-    return '';
-  }
-
-  // 필터 버튼 UI 빌더
-  Widget _buildFilterButton(String label) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 4),
-      child: GestureDetector(
-        onTap: () {},
-        child: Container(
-          width: 68,
-          height: 24,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border.all(color: Colors.grey.shade300),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          alignment: Alignment.center,
-          child: Text(label, style: const TextStyle(fontSize: 10)),
-        ),
-      ),
-    );
+    return '음식점';
   }
 
   // 현재 화면 중심 위치 기준 재검색 버튼 UI 빌더
@@ -518,7 +643,7 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
           final place = results[i];
           final location = place['geometry']?['location'];
           
-          if (location != null) {
+          if (location != null && _isFoodRelatedPlace(place)) {
             final placeLat = location['lat']?.toDouble() ?? 0.0;
             final placeLng = location['lng']?.toDouble() ?? 0.0;
             
@@ -672,21 +797,7 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 6),
-
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            _buildFilterButton('카테고리'),
-                            _buildFilterButton('방문상태'),
-                            _buildFilterButton('동반여부'),
-                            _buildFilterButton('평점'),
-                            _buildFilterButton('찜'),
-                          ],
-                        ),
-                      ),
+                      const SizedBox(height: 16),
 
                       if (_isLoading)
                         const Padding(
