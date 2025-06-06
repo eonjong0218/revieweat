@@ -34,11 +34,89 @@ class _SearchScreenState extends State<SearchScreen> {
   late final String _googleApiKey;
   late final String _baseUrl;
 
+  // 음식 관련 타입들 (더 엄격한 필터링)
+  static const Set<String> _foodRelatedTypes = {
+    'restaurant',
+    'food',
+    'meal_delivery',
+    'meal_takeaway',
+    'bakery',
+    'cafe',
+    'bar',
+    'night_club',
+    'liquor_store',
+  };
+
+  // 제외할 타입들 (음식과 무관한 장소들)
+  static const Set<String> _excludedTypes = {
+    'university',
+    'school',
+    'hospital',
+    'bank',
+    'atm',
+    'gas_station',
+    'pharmacy',
+    'post_office',
+    'police',
+    'fire_station',
+    'local_government_office',
+    'courthouse',
+    'embassy',
+    'library',
+    'museum',
+    'church',
+    'mosque',
+    'synagogue',
+    'hindu_temple',
+    'cemetery',
+    'funeral_home',
+    'car_dealer',
+    'car_rental',
+    'car_repair',
+    'car_wash',
+    'beauty_salon',
+    'hair_care',
+    'spa',
+    'gym',
+    'dentist',
+    'doctor',
+    'veterinary_care',
+    'real_estate_agency',
+    'insurance_agency',
+    'lawyer',
+    'accounting',
+    'travel_agency',
+    'lodging',
+    'campground',
+    'rv_park',
+    'tourist_attraction',
+    'amusement_park',
+    'aquarium',
+    'zoo',
+    'park',
+    'stadium',
+    'movie_theater',
+    'bowling_alley',
+    'casino',
+    'shopping_mall',
+    'department_store',
+    'electronics_store',
+    'furniture_store',
+    'hardware_store',
+    'home_goods_store',
+    'jewelry_store',
+    'shoe_store',
+    'clothing_store',
+    'book_store',
+    'bicycle_store',
+    'pet_store',
+  };
+
   @override
   void initState() {
     super.initState();
     _initializeEnvironmentVariables();
-    _loadSearchHistory(); // 최근 검색 기록 불러오기
+    _loadSearchHistory();
   }
 
   // 환경 변수 초기화
@@ -58,7 +136,7 @@ class _SearchScreenState extends State<SearchScreen> {
     super.dispose();
   }
 
-  // 서버에서 최근 검색 기록 불러오기 (UTF-8 디코딩 적용)
+  // 서버에서 최근 검색 기록 불러오기
   Future<void> _loadSearchHistory() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
@@ -93,7 +171,7 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
-  // 검색어를 서버에 저장 (UTF-8 디코딩 적용)
+  // 검색어를 서버에 저장
   Future<void> _saveSearchToServer(String query, {bool isPlace = false, String? placeName}) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
@@ -139,7 +217,7 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
-  // 특정 검색 기록 삭제 (UTF-8 디코딩 적용)
+  // 특정 검색 기록 삭제
   Future<void> _deleteSearchHistory(int id, int index) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
@@ -161,7 +239,7 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
-  // 전체 검색 기록 삭제 (UTF-8 디코딩 적용)
+  // 전체 검색 기록 삭제
   Future<void> _deleteAllSearchHistory() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
@@ -183,7 +261,82 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
-  // Google API를 사용한 장소 자동완성 검색
+  // 음식 관련 장소인지 확인하는 함수 (더 엄격한 필터링)
+  bool _isFoodRelatedPlace(dynamic place) {
+    final List<dynamic> types = place['types'] ?? [];
+    
+    // 먼저 제외할 타입이 있는지 확인
+    for (String type in types) {
+      if (_excludedTypes.contains(type)) {
+        return false; // 제외 타입이 하나라도 있으면 제외
+      }
+    }
+    
+    // 음식 관련 타입이 있는지 확인
+    bool hasValidType = false;
+    for (String type in types) {
+      if (_foodRelatedTypes.contains(type)) {
+        hasValidType = true;
+        break;
+      }
+    }
+    
+    // 타입으로 확인되지 않으면 키워드로 확인
+    if (!hasValidType) {
+      final String mainText = (place['structured_formatting']?['main_text'] ?? '').toLowerCase();
+      final String secondaryText = (place['structured_formatting']?['secondary_text'] ?? '').toLowerCase();
+      final String description = place['description']?.toLowerCase() ?? '';
+      
+      // 음식 관련 키워드들 (더 구체적으로)
+      const List<String> foodKeywords = [
+        '음식점', '레스토랑', '식당', '카페', '커피숍', '커피전문점',
+        '베이커리', '빵집', '제과점', '치킨', '피자', '햄버거', '분식',
+        '한식', '중식', '일식', '양식', '이탈리안', '멕시칸', '태국',
+        '술집', '바', '펍', '호프', '맥주', '소주', '와인', '칵테일',
+        '디저트', '아이스크림', '케이크', '도넛', '마카롱', '와플',
+        '배달', '테이크아웃', '포장', '치킨집', '피자집', '족발',
+        '보쌈', '삼겹살', '갈비', '불고기', '냉면', '라면', '우동',
+        '파스타', '스테이크', '샐러드', '샌드위치', '버거', '타코',
+        'restaurant', 'cafe', 'coffee', 'bakery', 'bar', 'pub',
+        'pizza', 'chicken', 'burger', 'food', 'dining', 'bistro',
+        'grill', 'kitchen', 'eatery', 'diner', 'tavern'
+      ];
+      
+      // 제외할 키워드들
+      const List<String> excludeKeywords = [
+        '대학교', '대학', '학교', '병원', '은행', '주유소', '약국',
+        '우체국', '경찰서', '소방서', '시청', '구청', '도서관',
+        '박물관', '교회', '성당', '절', '사찰', '공원', '놀이터',
+        '마트', '백화점', '쇼핑몰', '편의점', '미용실', '헬스장',
+        'university', 'college', 'school', 'hospital', 'bank',
+        'station', 'pharmacy', 'office', 'library', 'museum',
+        'church', 'temple', 'park', 'mall', 'market'
+      ];
+      
+      // 제외 키워드가 있으면 제외
+      for (String keyword in excludeKeywords) {
+        if (mainText.contains(keyword) || 
+            secondaryText.contains(keyword) || 
+            description.contains(keyword)) {
+          return false;
+        }
+      }
+      
+      // 음식 키워드가 있으면 포함
+      for (String keyword in foodKeywords) {
+        if (mainText.contains(keyword) || 
+            secondaryText.contains(keyword) || 
+            description.contains(keyword)) {
+          hasValidType = true;
+          break;
+        }
+      }
+    }
+    
+    return hasValidType;
+  }
+
+  // Google API를 사용한 장소 자동완성 검색 (음식 관련만 엄격 필터링)
   Future<void> _searchPlaces(String query) async {
     if (query.isEmpty) {
       setState(() {
@@ -197,11 +350,15 @@ class _SearchScreenState extends State<SearchScreen> {
       _isLoading = true;
     });
 
+    // 음식 관련 키워드를 쿼리에 추가하여 더 정확한 결과 얻기
+    final String enhancedQuery = '$query 음식점 OR $query 카페 OR $query 레스토랑';
+    
     final String url = 'https://maps.googleapis.com/maps/api/place/autocomplete/json'
-        '?input=${Uri.encodeComponent(query)}'
+        '?input=${Uri.encodeComponent(query)}' // 원본 쿼리 사용
         '&key=$_googleApiKey'
         '&language=ko'
         '&components=country:kr';
+        // types 파라미터 제거 - 더 넓은 범위에서 검색 후 필터링
 
     final response = await http.get(Uri.parse(url));
     
@@ -209,9 +366,32 @@ class _SearchScreenState extends State<SearchScreen> {
       final data = json.decode(response.body);
       
       if (data['status'] == 'OK') {
+        final List<dynamic> allPlaces = data['predictions'] ?? [];
+        
+        // 음식 관련 장소만 필터링
+        final List<dynamic> foodPlaces = [];
+        
+        for (var place in allPlaces) {
+          // Place Details API로 타입 정보 가져와서 확인
+          final placeId = place['place_id'];
+          final details = await _getPlaceTypesOnly(placeId);
+          
+          if (details != null) {
+            place['types'] = details['types'];
+            if (_isFoodRelatedPlace(place)) {
+              foodPlaces.add(place);
+            }
+          }
+          
+          // 최대 10개까지만 표시
+          if (foodPlaces.length >= 10) {
+            break;
+          }
+        }
+        
         if (mounted) {
           setState(() {
-            _places = data['predictions'] ?? [];
+            _places = foodPlaces;
             _isLoading = false;
           });
         }
@@ -233,13 +413,31 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
-  // 장소 세부 정보 가져오기 (위치, 주소 등)
+  // 장소의 타입 정보만 빠르게 가져오기
+  Future<Map<String, dynamic>?> _getPlaceTypesOnly(String placeId) async {
+    final String url = 'https://maps.googleapis.com/maps/api/place/details/json'
+        '?place_id=$placeId'
+        '&key=$_googleApiKey'
+        '&fields=types';
+
+    final response = await http.get(Uri.parse(url));
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      if (data['status'] == 'OK') {
+        return data['result'];
+      }
+    }
+    return null;
+  }
+
+  // 장소 세부 정보 가져오기
   Future<Map<String, dynamic>?> _getPlaceDetails(String placeId) async {
     final String url = 'https://maps.googleapis.com/maps/api/place/details/json'
         '?place_id=$placeId'
         '&key=$_googleApiKey'
         '&language=ko'
-        '&fields=name,formatted_address,geometry,place_id';
+        '&fields=name,formatted_address,geometry,place_id,types';
 
     final response = await http.get(Uri.parse(url));
 
@@ -411,7 +609,7 @@ class _SearchScreenState extends State<SearchScreen> {
                         textInputAction: TextInputAction.search,
                         autofocus: true,
                         decoration: const InputDecoration(
-                          hintText: '장소 및 주소 검색',
+                          hintText: '맛집, 카페, 음식점 검색',
                           hintStyle: TextStyle(color: Colors.grey),
                           border: InputBorder.none,
                           contentPadding: EdgeInsets.zero,
@@ -440,10 +638,45 @@ class _SearchScreenState extends State<SearchScreen> {
                   ? _buildPlacesList()
                   : _searchController.text.isNotEmpty && _isLoading
                       ? const Center(child: CircularProgressIndicator())
-                      : _buildRecentSearches(),
+                      : _searchController.text.isNotEmpty && _places.isEmpty && !_isLoading
+                          ? _buildNoResults()
+                          : _buildRecentSearches(),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // 검색 결과 없음 위젯
+  Widget _buildNoResults() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.search_off,
+            size: 64,
+            color: Colors.grey[300],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            '음식점 검색 결과가 없습니다',
+            style: TextStyle(
+              color: Colors.grey[500],
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '다른 키워드로 검색해보세요',
+            style: TextStyle(
+              color: Colors.grey[400],
+              fontSize: 14,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -465,10 +698,10 @@ class _SearchScreenState extends State<SearchScreen> {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: Colors.red[50],
+              color: Colors.orange[50],
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.location_on, color: Colors.red, size: 20),
+            child: const Icon(Icons.restaurant, color: Colors.orange, size: 20),
           ),
           title: Text(
             mainText,
@@ -539,7 +772,7 @@ class _SearchScreenState extends State<SearchScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.search,
+              Icons.restaurant_menu,
               size: 64,
               color: Colors.grey[300],
             ),
@@ -554,7 +787,7 @@ class _SearchScreenState extends State<SearchScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              '장소나 주소를 검색해보세요',
+              '맛집이나 카페를 검색해보세요',
               style: TextStyle(
                 color: Colors.grey[400],
                 fontSize: 14,
@@ -582,12 +815,12 @@ class _SearchScreenState extends State<SearchScreen> {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: isPlace ? Colors.red[50] : Colors.grey[100],
+              color: isPlace ? Colors.orange[50] : Colors.grey[100],
               shape: BoxShape.circle,
             ),
             child: Icon(
-              isPlace ? Icons.location_on : Icons.history,
-              color: isPlace ? Colors.red : Colors.grey[600],
+              isPlace ? Icons.restaurant : Icons.history,
+              color: isPlace ? Colors.orange : Colors.grey[600],
               size: 18,
             ),
           ),
