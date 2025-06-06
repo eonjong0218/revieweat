@@ -26,6 +26,84 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
   Position? _currentPosition; // 현재 위치 저장
   final Map<String, LatLng> _predictionLocations = {}; // 자동완성 결과 장소의 좌표 저장
 
+  // 음식 관련 타입들 (더 엄격한 필터링)
+  static const Set<String> _foodRelatedTypes = {
+    'restaurant',
+    'food',
+    'meal_delivery',
+    'meal_takeaway',
+    'bakery',
+    'cafe',
+    'bar',
+    'night_club',
+    'liquor_store',
+  };
+
+  // 제외할 타입들 (음식과 무관한 장소들)
+  static const Set<String> _excludedTypes = {
+    'university',
+    'school',
+    'hospital',
+    'bank',
+    'atm',
+    'gas_station',
+    'pharmacy',
+    'post_office',
+    'police',
+    'fire_station',
+    'local_government_office',
+    'courthouse',
+    'embassy',
+    'library',
+    'museum',
+    'church',
+    'mosque',
+    'synagogue',
+    'hindu_temple',
+    'cemetery',
+    'funeral_home',
+    'car_dealer',
+    'car_rental',
+    'car_repair',
+    'car_wash',
+    'beauty_salon',
+    'hair_care',
+    'spa',
+    'gym',
+    'dentist',
+    'doctor',
+    'veterinary_care',
+    'real_estate_agency',
+    'insurance_agency',
+    'lawyer',
+    'accounting',
+    'travel_agency',
+    'lodging',
+    'campground',
+    'rv_park',
+    'tourist_attraction',
+    'amusement_park',
+    'aquarium',
+    'zoo',
+    'park',
+    'stadium',
+    'movie_theater',
+    'bowling_alley',
+    'casino',
+    'shopping_mall',
+    'department_store',
+    'electronics_store',
+    'furniture_store',
+    'hardware_store',
+    'home_goods_store',
+    'jewelry_store',
+    'shoe_store',
+    'clothing_store',
+    'book_store',
+    'bicycle_store',
+    'pet_store',
+  };
+
   @override
   void initState() {
     super.initState();
@@ -75,7 +153,82 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
     return await Geolocator.getCurrentPosition();
   }
 
-  // 검색어 변경 시 자동완성 API 호출
+  // 음식 관련 장소인지 확인하는 함수 (더 엄격한 필터링)
+  bool _isFoodRelatedPlace(dynamic place) {
+    final List<dynamic> types = place['types'] ?? [];
+    
+    // 먼저 제외할 타입이 있는지 확인
+    for (String type in types) {
+      if (_excludedTypes.contains(type)) {
+        return false; // 제외 타입이 하나라도 있으면 제외
+      }
+    }
+    
+    // 음식 관련 타입이 있는지 확인
+    bool hasValidType = false;
+    for (String type in types) {
+      if (_foodRelatedTypes.contains(type)) {
+        hasValidType = true;
+        break;
+      }
+    }
+    
+    // 타입으로 확인되지 않으면 키워드로 확인
+    if (!hasValidType) {
+      final String mainText = (place['structured_formatting']?['main_text'] ?? '').toLowerCase();
+      final String secondaryText = (place['structured_formatting']?['secondary_text'] ?? '').toLowerCase();
+      final String description = place['description']?.toLowerCase() ?? '';
+      
+      // 음식 관련 키워드들 (더 구체적으로)
+      const List<String> foodKeywords = [
+        '음식점', '레스토랑', '식당', '카페', '커피숍', '커피전문점',
+        '베이커리', '빵집', '제과점', '치킨', '피자', '햄버거', '분식',
+        '한식', '중식', '일식', '양식', '이탈리안', '멕시칸', '태국',
+        '술집', '바', '펍', '호프', '맥주', '소주', '와인', '칵테일',
+        '디저트', '아이스크림', '케이크', '도넛', '마카롱', '와플',
+        '배달', '테이크아웃', '포장', '치킨집', '피자집', '족발',
+        '보쌈', '삼겹살', '갈비', '불고기', '냉면', '라면', '우동',
+        '파스타', '스테이크', '샐러드', '샌드위치', '버거', '타코',
+        'restaurant', 'cafe', 'coffee', 'bakery', 'bar', 'pub',
+        'pizza', 'chicken', 'burger', 'food', 'dining', 'bistro',
+        'grill', 'kitchen', 'eatery', 'diner', 'tavern'
+      ];
+      
+      // 제외할 키워드들
+      const List<String> excludeKeywords = [
+        '대학교', '대학', '학교', '병원', '은행', '주유소', '약국',
+        '우체국', '경찰서', '소방서', '시청', '구청', '도서관',
+        '박물관', '교회', '성당', '절', '사찰', '공원', '놀이터',
+        '마트', '백화점', '쇼핑몰', '편의점', '미용실', '헬스장',
+        'university', 'college', 'school', 'hospital', 'bank',
+        'station', 'pharmacy', 'office', 'library', 'museum',
+        'church', 'temple', 'park', 'mall', 'market'
+      ];
+      
+      // 제외 키워드가 있으면 제외
+      for (String keyword in excludeKeywords) {
+        if (mainText.contains(keyword) || 
+            secondaryText.contains(keyword) || 
+            description.contains(keyword)) {
+          return false;
+        }
+      }
+      
+      // 음식 키워드가 있으면 포함
+      for (String keyword in foodKeywords) {
+        if (mainText.contains(keyword) || 
+            secondaryText.contains(keyword) || 
+            description.contains(keyword)) {
+          hasValidType = true;
+          break;
+        }
+      }
+    }
+    
+    return hasValidType;
+  }
+
+  // 검색어 변경 시 자동완성 API 호출 (음식점만 필터링)
   void _onSearchChanged(String value) async {
     if (value.isEmpty) {
       // 검색어가 비면 결과 초기화
@@ -98,12 +251,53 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       if (data['status'] == 'OK') {
+        final List<dynamic> allPredictions = data['predictions'] ?? [];
+        
+        // 음식 관련 장소만 필터링
+        final List<dynamic> foodPredictions = [];
+        
+        for (var prediction in allPredictions) {
+          // Place Details API로 타입 정보 가져와서 확인
+          final placeId = prediction['place_id'];
+          final details = await _getPlaceTypesOnly(placeId);
+          
+          if (details != null) {
+            prediction['types'] = details['types'];
+            if (_isFoodRelatedPlace(prediction)) {
+              foodPredictions.add(prediction);
+            }
+          }
+          
+          // 최대 10개까지만 표시
+          if (foodPredictions.length >= 10) {
+            break;
+          }
+        }
+        
         setState(() {
-          _predictions = data['predictions'] ?? [];
+          _predictions = foodPredictions;
           _predictionLocations.clear(); // 위치 정보는 상세조회에서 받음
         });
       }
     }
+  }
+
+  // 장소의 타입 정보만 빠르게 가져오기
+  Future<Map<String, dynamic>?> _getPlaceTypesOnly(String placeId) async {
+    final String url = 'https://maps.googleapis.com/maps/api/place/details/json'
+        '?place_id=$placeId'
+        '&key=$_googleApiKey'
+        '&fields=types';
+
+    final response = await http.get(Uri.parse(url));
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      if (data['status'] == 'OK') {
+        return data['result'];
+      }
+    }
+    return null;
   }
 
   // 자동완성 결과 선택 시 장소 상세정보 API 호출 및 지도 업데이트
@@ -221,7 +415,7 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
                           controller: _searchController,
                           onChanged: _onSearchChanged, // 검색어 변경 콜백
                           decoration: const InputDecoration(
-                            hintText: '장소 및 주소 검색',
+                            hintText: '장소 맟 주소 검색',
                             hintStyle: TextStyle(color: Colors.grey, fontSize: 15),
                             prefixIcon: Icon(Icons.search, color: Colors.grey, size: 20),
                             border: InputBorder.none,
@@ -386,10 +580,10 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: Colors.red[50],
+                color: Colors.orange[50],
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.location_on, color: Colors.red, size: 20),
+              child: const Icon(Icons.restaurant, color: Colors.orange, size: 20),
             ),
             title: Row(
               children: [
@@ -437,17 +631,12 @@ class _ReviewPlaceSearchScreenState extends State<ReviewPlaceSearchScreen> {
           Icon(Icons.restaurant_menu, size: 64, color: Colors.grey[300]),
           const SizedBox(height: 16),
           Text(
-            '장소를 검색해보세요',
+            '맛집을 검색해보세요',
             style: TextStyle(
                 color: Colors.grey[500],
                 fontSize: 16,
                 fontWeight: FontWeight.w500),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '검색어를 입력하세요',
-            style: TextStyle(color: Colors.grey[400], fontSize: 14),
-          ),
+          )
         ],
       ),
     );
