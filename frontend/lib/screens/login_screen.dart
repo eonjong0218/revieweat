@@ -174,7 +174,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted && Navigator.canPop(context)) {
         Navigator.of(context).pop();
         if (isSuccess) {
-          Navigator.pushReplacementNamed(context, '/home');
+          Navigator.pushReplacementNamed(context, '/홈');
         }
       }
     });
