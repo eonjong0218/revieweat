@@ -3,8 +3,11 @@ import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 import 'package:syncfusion_flutter_core/theme.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-// 프로필 화면 StatefulWidget
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -13,20 +16,84 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  // 하단 네비게이션 인덱스 (Profile이 기본 선택)
   int _selectedIndex = 2;
-  // 필터: 선택된 날짜, 평점, 동반인
   DateTime? selectedDate;
   String? selectedRating;
   String? selectedCompanion;
 
-  // 평점, 동반인 옵션 리스트
+  // 프로필 및 리뷰 데이터
+  String? _username;
+  int _reviewCount = 0;
+  List<dynamic> _reviews = [];
+  bool _isLoading = true;
+
   static const List<String> ratingOptions = [
     '★☆☆☆☆', '★★☆☆☆', '★★★☆☆', '★★★★☆', '★★★★★'
   ];
   static const List<String> companionOptions = [
     '혼자', '친구', '연인', '가족', '기타'
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchProfileAndReviews();
+  }
+
+  Future<void> _fetchProfileAndReviews() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('access_token');
+    final apiUrl = dotenv.env['API_URL'] ?? 'http://localhost:8000';
+
+    if (token == null) {
+      setState(() {
+        _isLoading = false;
+      });
+      return;
+    }
+
+    try {
+      // 1. 사용자 정보 요청
+      final userRes = await http.get(
+        Uri.parse('$apiUrl/profile'),
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      );
+      String? username;
+      if (userRes.statusCode == 200) {
+        final data = json.decode(utf8.decode(userRes.bodyBytes));
+        username = data['username'] ?? '';
+      }
+
+      // 2. 내 리뷰 목록 요청
+      final reviewRes = await http.get(
+        Uri.parse('$apiUrl/my-reviews'),
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      );
+      List<dynamic> reviews = [];
+      if (reviewRes.statusCode == 200) {
+        reviews = json.decode(utf8.decode(reviewRes.bodyBytes));
+      }
+
+      setState(() {
+        _username = username;
+        _reviews = reviews;
+        _reviewCount = reviews.length;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   // 날짜 선택 모달 표시
   Future<void> _showDatePickerModal(BuildContext context) async {
@@ -115,7 +182,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              // 평점 옵션 리스트
               ...ratingOptions.map((rating) => ListTile(
                 title: Text(rating),
                 onTap: () {
@@ -154,7 +220,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              // 동반인 옵션 리스트
               ...companionOptions.map((companion) => ListTile(
                 title: Text(companion),
                 onTap: () {
@@ -176,19 +241,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       body: SafeArea(
-        child: Column(
-          children: [
-            // 상단 여백만 추가
-            const SizedBox(height: 40),
-            _buildProfileHeader(),
-            _buildFilterChips(),
-            Expanded(
-              child: _buildMyReviews(),
-            ),
-          ],
-        ),
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : Column(
+                children: [
+                  const SizedBox(height: 40),
+                  _buildProfileHeader(),
+                  _buildFilterChips(),
+                  Expanded(
+                    child: _buildMyReviews(),
+                  ),
+                ],
+              ),
       ),
-      // 리뷰 작성 플로팅 버튼
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           Navigator.pushNamed(context, '/review_place_search');
@@ -198,7 +263,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: const Icon(Icons.edit, color: Colors.white),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      // 하단 네비게이션 바
       bottomNavigationBar: BottomAppBar(
         height: 64,
         color: Colors.white,
@@ -219,14 +283,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // 프로필 헤더 UI
+  // 프로필 헤더 UI (username과 리뷰 수 표시)
   Widget _buildProfileHeader() {
     return Container(
       color: Colors.white,
       padding: const EdgeInsets.all(24.0),
       child: Row(
         children: [
-          // 프로필 이미지
           Container(
             width: 72,
             height: 72,
@@ -252,14 +315,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
           const SizedBox(width: 20),
-          // 사용자 정보
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'User name',
-                  style: TextStyle(
+                Text(
+                  _username ?? 'User name',
+                  style: const TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w700,
                     color: Colors.black87,
@@ -273,9 +335,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     color: Colors.grey[100],
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Text(
-                    '234 Posts',
-                    style: TextStyle(
+                  child: Text(
+                    '$_reviewCount Posts',
+                    style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
                       color: Colors.grey,
@@ -290,7 +352,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // 필터 칩(날짜, 장소, 동반여부, 평점, 찜) UI
+  // 필터 칩 UI (기존과 동일)
   Widget _buildFilterChips() {
     final filters = ['날짜', '장소', '동반여부', '평점', '찜'];
 
@@ -306,7 +368,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // 개별 필터 칩 위젯
   Widget _buildFilterChip(String label) {
     bool hasSelection = false;
     if (label == '날짜' && selectedDate != null) hasSelection = true;
@@ -316,14 +377,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return GestureDetector(
       onTap: () {
         if (hasSelection) {
-          // X 아이콘 클릭: 선택 해제
           setState(() {
             if (label == '날짜') selectedDate = null;
             if (label == '평점') selectedRating = null;
             if (label == '동반여부') selectedCompanion = null;
           });
         } else {
-          // 필터 선택 모달 표시
           if (label == '날짜') {
             _showDatePickerModal(context);
           } else if (label == '평점') {
@@ -369,7 +428,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // 필터 칩에 표시될 텍스트 반환
   String _getDisplayText(String label) {
     switch (label) {
       case '날짜':
@@ -385,14 +443,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // 내 리뷰 리스트 빌드
+  // 내 리뷰 리스트: DB에서 불러온 실제 리뷰 목록 표시 (수정됨)
   Widget _buildMyReviews() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_reviews.isEmpty) {
+      return Center(
+        child: Text(
+          '작성한 리뷰가 없습니다.',
+          style: TextStyle(color: Colors.grey[500], fontSize: 16),
+        ),
+      );
+    }
     return Container(
       margin: const EdgeInsets.only(top: 8),
       child: ListView.builder(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-        itemCount: 4,
+        itemCount: _reviews.length,
         itemBuilder: (context, index) {
+          final review = _reviews[index];
+          
+          // 이미지 경로 파싱 (쉼표로 구분된 경로들)
+          List<String> imagePaths = [];
+          if (review['image_paths'] != null && review['image_paths'].toString().isNotEmpty) {
+            imagePaths = review['image_paths'].toString().split(',')
+                .where((path) => path.trim().isNotEmpty)
+                .toList();
+          }
+          
+          // 별점 안전하게 파싱
+          int rating = 0;
+          if (review['rating'] != null) {
+            final ratingStr = review['rating'].toString();
+            if (ratingStr.isNotEmpty) {
+              // "★★★★★" 형태나 "5" 형태 모두 처리
+              if (ratingStr.contains('★')) {
+                rating = ratingStr.split('★').length - 1;
+              } else {
+                rating = int.tryParse(ratingStr) ?? 0;
+              }
+            }
+          }
+          
           return Container(
             margin: const EdgeInsets.only(bottom: 16),
             padding: const EdgeInsets.all(20),
@@ -401,7 +494,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withAlpha(13),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 2),
                 ),
@@ -411,47 +504,133 @@ class _ProfileScreenState extends State<ProfileScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // 이미지 또는 아이콘 표시 (크기 증가)
                     Container(
-                      width: 60,
-                      height: 60,
+                      width: 90,
+                      height: 90,
                       decoration: BoxDecoration(
-                        color: Colors.grey[300],
+                        color: imagePaths.isNotEmpty ? Colors.transparent : Colors.grey[300],
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Icon(
-                        Icons.restaurant_rounded,
-                        color: Colors.grey[600],
-                        size: 24,
-                      ),
+                      child: imagePaths.isNotEmpty
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Image.network(
+                                imagePaths.first, // 첫 번째 이미지를 대표 이미지로 사용
+                                width: 90,
+                                height: 90,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  // 이미지 로드 실패 시 아이콘 표시
+                                  return Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[300],
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Icon(
+                                      Icons.restaurant_rounded,
+                                      color: Colors.grey[600],
+                                      size: 32,
+                                    ),
+                                  );
+                                },
+                                loadingBuilder: (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[200],
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Center(
+                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                    ),
+                                  );
+                                },
+                              ),
+                            )
+                          : Icon(
+                              Icons.restaurant_rounded,
+                              color: Colors.grey[600],
+                              size: 32,
+                            ),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            '맛집 리뷰 #${index + 1}',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
+                          // 장소명과 날짜를 한 줄에 배치
                           Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              ...List.generate(5, (i) => Icon(
-                                Icons.star_rounded,
-                                size: 16,
-                                color: i < 4 ? Colors.amber : Colors.grey[300],
-                              )),
+                              Expanded(
+                                child: Text(
+                                  review['place_name'] ?? '장소명 없음',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black87,
+                                  ),
+                                  // 줄바꿈을 허용하여 전체 장소명 표시
+                                ),
+                              ),
                               const SizedBox(width: 8),
+                              // 리뷰 날짜 (년도, 월, 일 모두 표시)
                               Text(
-                                '2024.05.${20 + index}',
+                                review['review_date'] != null
+                                    ? DateFormat('yyyy.MM.dd').format(DateTime.parse(review['review_date']))
+                                    : '',
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          
+                          // 장소 주소 (줄바꿈해서라도 다 보이게)
+                          if (review['place_address'] != null && review['place_address'].toString().isNotEmpty)
+                            Text(
+                              review['place_address'],
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[600],
+                              ),
+                              // maxLines와 overflow 제거하여 전체 주소 표시
+                            ),
+                          const SizedBox(height: 6),
+                          
+                          // 동반인과 별점을 나란히 배치
+                          Row(
+                            children: [
+                              // 동반인 정보
+                              if (review['companion'] != null && review['companion'].toString().isNotEmpty) ...[
+                                Icon(
+                                  Icons.people_outline,
+                                  size: 14,
+                                  color: Colors.grey[600],
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${review['companion']}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                              ],
+                              
+                              // 별점 표시
+                              ...List.generate(
+                                5,
+                                (i) => Icon(
+                                  Icons.star_rounded,
+                                  size: 14,
+                                  color: i < rating ? Colors.amber : Colors.grey[300],
                                 ),
                               ),
                             ],
@@ -461,6 +640,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 12),
+                
+                // 리뷰 내용 (2줄까지만 표시)
+                if (review['review_text'] != null && review['review_text'].toString().isNotEmpty)
+                  Text(
+                    review['review_text'],
+                    style: TextStyle(
+                      color: Colors.grey[800],
+                      fontSize: 14,
+                      height: 1.4,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                
+                // 이미지 개수 표시 (이미지가 여러 개인 경우)
+                if (imagePaths.length > 1)
+                  Container(
+                    margin: const EdgeInsets.only(top: 8),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.photo_library_outlined,
+                          size: 16,
+                          color: Colors.grey[600],
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '사진 ${imagePaths.length}장',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
               ],
             ),
           );
@@ -469,7 +685,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // 하단 네비게이션 아이템 클릭 시 동작
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
@@ -483,7 +698,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Navigator.pushReplacementNamed(context, '/달력');
         break;
       case 2:
-        // 현재 화면 (Profile)
         break;
       case 3:
         Navigator.pushReplacementNamed(context, '/환경설정');
@@ -491,7 +705,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // 하단 네비게이션 아이템 UI
   Widget _buildNavItem(IconData icon, String label, int index) {
     final isSelected = _selectedIndex == index;
     return GestureDetector(
