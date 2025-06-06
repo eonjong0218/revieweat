@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:logger/logger.dart';
 import 'review_detail_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -17,6 +18,8 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  final Logger _logger = Logger();
+
   int _selectedIndex = 2;
   DateTime? selectedDate;
   String? selectedRating;
@@ -279,7 +282,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         },
         shape: const CircleBorder(),
         backgroundColor: Colors.black,
-        child: const Icon(Icons.edit, color: Colors.white),
+        child: const Icon(Icons.edit_square, color: Colors.white),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: BottomAppBar(
@@ -462,7 +465,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // 내 리뷰 리스트: 서버 이미지 URL 처리 개선
+  // 내 리뷰 리스트: print 문을 logger로 교체
   Widget _buildMyReviews() {
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
@@ -573,8 +576,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     );
                                   },
                                   errorBuilder: (context, error, stackTrace) {
-                                    // 이미지 로드 실패 시 아이콘 표시
-                                    print('이미지 로드 실패: ${imagePaths.first}, 에러: $error');
+                                    // print 문을 logger.e로 교체
+                                    _logger.e('이미지 로드 실패: ${imagePaths.first}\n에러: $error');
                                     return Container(
                                       decoration: BoxDecoration(
                                         color: Colors.grey[300],
@@ -656,15 +659,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                             const SizedBox(height: 6),
                             
-                            // 동반인과 별점을 나란히 배치
+                            // 동반인과 별점을 나란히 배치 (동반인 아이콘 보라색으로 변경)
                             Row(
                               children: [
-                                // 동반인 정보
+                                // 동반인 정보 (아이콘 색상 보라색으로 변경)
                                 if (review['companion'] != null && review['companion'].toString().isNotEmpty) ...[
                                   Icon(
                                     Icons.people_outline,
                                     size: 14,
-                                    color: Colors.grey[600],
+                                    color: Colors.purple, // 보라색으로 변경
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
@@ -708,28 +711,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       overflow: TextOverflow.ellipsis,
                     ),
                   
-                  // 이미지 개수 표시 (이미지가 여러 개인 경우)
-                  if (imagePaths.length > 1)
-                    Container(
-                      margin: const EdgeInsets.only(top: 8),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.photo_library_outlined,
-                            size: 16,
-                            color: Colors.grey[600],
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '사진 ${imagePaths.length}장',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                  // 이미지 개수 표시 부분 제거됨
                 ],
               ),
             ),
