@@ -60,3 +60,37 @@ env/
 # ---------------------------
 *.map.json
 *.symbols
+
+# ---------------------------
+# Uploaded Images & User Files
+# ---------------------------
+uploads/
+backend/uploads/
+**/uploads/
+
+# Image files (user uploaded content)
+*.jpg
+*.jpeg
+*.jpe
+*.jfif
+*.png
+*.gif
+*.webp
+*.bmp
+*.tiff
+*.tif
+*.ico
+*.raw
+
+# But keep app assets and resources
+!lib/assets/**
+!assets/**
+!static/**
+!**/assets/**
+!frontend/assets/**
+!backend/static/**
+
+# Keep folder structure with .gitkeep files
+!uploads/.gitkeep
+!backend/uploads/.gitkeep
+!**/uploads/.gitkeep
