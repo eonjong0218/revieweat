@@ -89,7 +89,7 @@ class ReviewEatApp extends StatelessWidget {
           );
         } 
         // 홈 화면
-        else if (settings.name == '/home') {
+        else if (settings.name == '/홈') {
           return MaterialPageRoute(
             builder: (_) => const HomeScreen(),
             settings: settings,
@@ -193,7 +193,7 @@ class ReviewEatApp extends StatelessWidget {
           }
         } 
         // 프로필 화면
-        else if (settings.name == '/profile') {
+        else if (settings.name == '/프로필') {
           return MaterialPageRoute(
             builder: (_) => const ProfileScreen(),
             settings: settings,

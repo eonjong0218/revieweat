@@ -208,11 +208,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _buildNavItem(Icons.home_rounded, 'Home', 0),
-            _buildNavItem(Icons.event_rounded, 'History', 1),
+            _buildNavItem(Icons.home_rounded, '홈', 0),
+            _buildNavItem(Icons.event_rounded, '달력', 1),
             const SizedBox(width: 48),
-            _buildNavItem(Icons.person_rounded, 'Profile', 2),
-            _buildNavItem(Icons.settings_rounded, 'Settings', 3),
+            _buildNavItem(Icons.person_rounded, '프로필', 2),
+            _buildNavItem(Icons.settings_rounded, '환경설정', 3),
           ],
         ),
       ),
@@ -477,16 +477,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     switch (index) {
       case 0:
-        Navigator.pushReplacementNamed(context, '/home');
+        Navigator.pushReplacementNamed(context, '/홈');
         break;
       case 1:
-        Navigator.pushReplacementNamed(context, '/history');
+        Navigator.pushReplacementNamed(context, '/달력');
         break;
       case 2:
         // 현재 화면 (Profile)
         break;
       case 3:
-        Navigator.pushReplacementNamed(context, '/settings');
+        Navigator.pushReplacementNamed(context, '/환경설정');
         break;
     }
   }

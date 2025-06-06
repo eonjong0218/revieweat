@@ -521,11 +521,11 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _buildNavItem(Icons.home_rounded, 'Home', 0),
-            _buildNavItem(Icons.event_rounded, 'History', 1),
+            _buildNavItem(Icons.home_rounded, '홈', 0),
+            _buildNavItem(Icons.event_rounded, '달력', 1),
             const SizedBox(width: 48), // FAB 위치
-            _buildNavItem(Icons.person_rounded, 'Profile', 2),
-            _buildNavItem(Icons.settings_rounded, 'Settings', 3),
+            _buildNavItem(Icons.person_rounded, '프로필', 2),
+            _buildNavItem(Icons.settings_rounded, '환경설정', 3),
           ],
         ),
       ),
