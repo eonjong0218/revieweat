@@ -11,6 +11,7 @@ import 'screens/review_second_screen.dart';
 import 'screens/review_final_screen.dart';
 import 'screens/review_success_screen.dart';
 import 'screens/profile_screen.dart';
+import 'screens/calendar_screen.dart'; // 추가된 import
 
 // 전역 로거 인스턴스
 final Logger logger = Logger(
@@ -95,6 +96,13 @@ class ReviewEatApp extends StatelessWidget {
             settings: settings,
           );
         } 
+        // 달력 화면
+        else if (settings.name == '/달력') {
+          return MaterialPageRoute(
+            builder: (_) => const CalendarScreen(),
+            settings: settings,
+          );
+        }
         // 검색 결과 화면
         else if (settings.name == '/search_result') {
           final args = settings.arguments;
