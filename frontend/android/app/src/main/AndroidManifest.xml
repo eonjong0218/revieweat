@@ -50,10 +50,10 @@
         android:requestLegacyExternalStorage="true"
         android:preserveLegacyExternalStorage="true">
 
-        <!-- Google Maps API 키 -->
+        <!-- Google Maps API 키 - 하드코딩 -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyAufgjB4H_wW06l9FtmFz8wPTiq15ALKuU"/>
+            android:value="AIzaSyAWftb5UIrA7L00qb4Xpwi9a9qUdfcnHts"/>
 
         <activity
             android:name=".MainActivity"
