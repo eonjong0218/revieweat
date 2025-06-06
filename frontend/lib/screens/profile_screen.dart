@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'review_detail_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -93,6 +94,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  // 이미지 URL 생성 함수 추가
+  String _getImageUrl(String imagePath) {
+    final baseUrl = dotenv.env['API_URL'] ?? 'http://localhost:8000';
+    
+    // 이미 완전한 URL인 경우
+    if (imagePath.startsWith('http')) {
+      return imagePath;
+    }
+    
+    // uploads/ 경로가 포함되어 있는 경우
+    if (imagePath.startsWith('uploads/')) {
+      return '$baseUrl/$imagePath';
+    }
+    
+    // 파일명만 있는 경우
+    return '$baseUrl/uploads/${imagePath.split('/').last}';
   }
 
   // 날짜 선택 모달 표시
@@ -283,7 +302,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // 프로필 헤더 UI (username과 리뷰 수 표시)
+  // 프로필 헤더 UI (파란색 그라데이션으로 변경)
   Widget _buildProfileHeader() {
     return Container(
       color: Colors.white,
@@ -295,14 +314,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
             height: 72,
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Colors.black87, Colors.black54],
+                colors: [Color(0xFF1976D2), Color(0xFF2196F3)], // 파란색 그라데이션
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withAlpha(25),
+                  color: Colors.blue.withValues(alpha: 0.3), // 파란색 그림자
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -443,7 +462,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // 내 리뷰 리스트: DB에서 불러온 실제 리뷰 목록 표시 (수정됨)
+  // 내 리뷰 리스트: 서버 이미지 URL 처리 개선
   Widget _buildMyReviews() {
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
@@ -464,12 +483,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
         itemBuilder: (context, index) {
           final review = _reviews[index];
           
-          // 이미지 경로 파싱 (쉼표로 구분된 경로들)
+          // 이미지 경로 파싱 및 서버 URL 처리 개선
           List<String> imagePaths = [];
           if (review['image_paths'] != null && review['image_paths'].toString().isNotEmpty) {
-            imagePaths = review['image_paths'].toString().split(',')
+            final rawPaths = review['image_paths'].toString().split(',')
                 .where((path) => path.trim().isNotEmpty)
                 .toList();
+            
+            // 서버 URL과 결합하여 완전한 이미지 URL 생성
+            imagePaths = rawPaths.map((path) => _getImageUrl(path.trim())).toList();
           }
           
           // 별점 안전하게 파싱
@@ -486,198 +508,230 @@ class _ProfileScreenState extends State<ProfileScreen> {
             }
           }
           
-          return Container(
-            margin: const EdgeInsets.only(bottom: 16),
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
+          // GestureDetector로 탭 기능 추가
+          return GestureDetector(
+            onTap: () {
+              // 리뷰 상세 페이지로 이동
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ReviewDetailScreen(review: review),
                 ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 이미지 또는 아이콘 표시 (크기 증가)
-                    Container(
-                      width: 90,
-                      height: 90,
-                      decoration: BoxDecoration(
-                        color: imagePaths.isNotEmpty ? Colors.transparent : Colors.grey[300],
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: imagePaths.isNotEmpty
-                          ? ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: Image.network(
-                                imagePaths.first, // 첫 번째 이미지를 대표 이미지로 사용
-                                width: 90,
-                                height: 90,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  // 이미지 로드 실패 시 아이콘 표시
-                                  return Container(
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey[300],
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Icon(
-                                      Icons.restaurant_rounded,
-                                      color: Colors.grey[600],
-                                      size: 32,
-                                    ),
-                                  );
-                                },
-                                loadingBuilder: (context, child, loadingProgress) {
-                                  if (loadingProgress == null) return child;
-                                  return Container(
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey[200],
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: const Center(
-                                      child: CircularProgressIndicator(strokeWidth: 2),
-                                    ),
-                                  );
-                                },
-                              ),
-                            )
-                          : Icon(
-                              Icons.restaurant_rounded,
-                              color: Colors.grey[600],
-                              size: 32,
-                            ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // 장소명과 날짜를 한 줄에 배치
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  review['place_name'] ?? '장소명 없음',
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.black87,
-                                  ),
-                                  // 줄바꿈을 허용하여 전체 장소명 표시
+              );
+            },
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 이미지 또는 아이콘 표시 (서버 이미지 처리 개선)
+                      Container(
+                        width: 90,
+                        height: 90,
+                        decoration: BoxDecoration(
+                          color: imagePaths.isNotEmpty ? Colors.transparent : Colors.grey[300],
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: imagePaths.isNotEmpty
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: Image.network(
+                                  imagePaths.first, // 첫 번째 이미지를 대표 이미지로 사용
+                                  width: 90,
+                                  height: 90,
+                                  fit: BoxFit.cover,
+                                  loadingBuilder: (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return Container(
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey[100],
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Center(
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          value: loadingProgress.expectedTotalBytes != null
+                                              ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                              : null,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  errorBuilder: (context, error, stackTrace) {
+                                    // 이미지 로드 실패 시 아이콘 표시
+                                    print('이미지 로드 실패: ${imagePaths.first}, 에러: $error');
+                                    return Container(
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey[300],
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: Colors.grey[400]!),
+                                      ),
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            Icons.image_not_supported,
+                                            color: Colors.grey[600],
+                                            size: 24,
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            '이미지 로드 실패',
+                                            style: TextStyle(
+                                              color: Colors.grey[600],
+                                              fontSize: 8,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
                                 ),
-                              ),
-                              const SizedBox(width: 8),
-                              // 리뷰 날짜 (년도, 월, 일 모두 표시)
-                              Text(
-                                review['review_date'] != null
-                                    ? DateFormat('yyyy.MM.dd').format(DateTime.parse(review['review_date']))
-                                    : '',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          
-                          // 장소 주소 (줄바꿈해서라도 다 보이게)
-                          if (review['place_address'] != null && review['place_address'].toString().isNotEmpty)
-                            Text(
-                              review['place_address'],
-                              style: TextStyle(
-                                fontSize: 12,
+                              )
+                            : Icon(
+                                Icons.restaurant_rounded,
                                 color: Colors.grey[600],
+                                size: 32,
                               ),
-                              // maxLines와 overflow 제거하여 전체 주소 표시
-                            ),
-                          const SizedBox(height: 6),
-                          
-                          // 동반인과 별점을 나란히 배치
-                          Row(
-                            children: [
-                              // 동반인 정보
-                              if (review['companion'] != null && review['companion'].toString().isNotEmpty) ...[
-                                Icon(
-                                  Icons.people_outline,
-                                  size: 14,
-                                  color: Colors.grey[600],
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // 장소명과 날짜를 한 줄에 배치
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    review['place_name'] ?? '장소명 없음',
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.black87,
+                                    ),
+                                    // 줄바꿈을 허용하여 전체 장소명 표시
+                                  ),
                                 ),
-                                const SizedBox(width: 4),
+                                const SizedBox(width: 8),
+                                // 리뷰 날짜 (년도, 월, 일 모두 표시)
                                 Text(
-                                  '${review['companion']}',
+                                  review['review_date'] != null
+                                      ? DateFormat('yyyy.MM.dd').format(DateTime.parse(review['review_date']))
+                                      : '',
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: Colors.grey[600],
                                   ),
                                 ),
-                                const SizedBox(width: 12),
                               ],
-                              
-                              // 별점 표시
-                              ...List.generate(
-                                5,
-                                (i) => Icon(
-                                  Icons.star_rounded,
-                                  size: 14,
-                                  color: i < rating ? Colors.amber : Colors.grey[300],
+                            ),
+                            const SizedBox(height: 6),
+                            
+                            // 장소 주소 (줄바꿈해서라도 다 보이게)
+                            if (review['place_address'] != null && review['place_address'].toString().isNotEmpty)
+                              Text(
+                                review['place_address'],
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
                                 ),
+                                // maxLines와 overflow 제거하여 전체 주소 표시
                               ),
-                            ],
+                            const SizedBox(height: 6),
+                            
+                            // 동반인과 별점을 나란히 배치
+                            Row(
+                              children: [
+                                // 동반인 정보
+                                if (review['companion'] != null && review['companion'].toString().isNotEmpty) ...[
+                                  Icon(
+                                    Icons.people_outline,
+                                    size: 14,
+                                    color: Colors.grey[600],
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '${review['companion']}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                ],
+                                
+                                // 별점 표시
+                                ...List.generate(
+                                  5,
+                                  (i) => Icon(
+                                    Icons.star_rounded,
+                                    size: 14,
+                                    color: i < rating ? Colors.amber : Colors.grey[300],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  
+                  // 리뷰 내용 (2줄까지만 표시)
+                  if (review['review_text'] != null && review['review_text'].toString().isNotEmpty)
+                    Text(
+                      review['review_text'],
+                      style: TextStyle(
+                        color: Colors.grey[800],
+                        fontSize: 14,
+                        height: 1.4,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  
+                  // 이미지 개수 표시 (이미지가 여러 개인 경우)
+                  if (imagePaths.length > 1)
+                    Container(
+                      margin: const EdgeInsets.only(top: 8),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.photo_library_outlined,
+                            size: 16,
+                            color: Colors.grey[600],
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '사진 ${imagePaths.length}장',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
                           ),
                         ],
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                
-                // 리뷰 내용 (2줄까지만 표시)
-                if (review['review_text'] != null && review['review_text'].toString().isNotEmpty)
-                  Text(
-                    review['review_text'],
-                    style: TextStyle(
-                      color: Colors.grey[800],
-                      fontSize: 14,
-                      height: 1.4,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                
-                // 이미지 개수 표시 (이미지가 여러 개인 경우)
-                if (imagePaths.length > 1)
-                  Container(
-                    margin: const EdgeInsets.only(top: 8),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.photo_library_outlined,
-                          size: 16,
-                          color: Colors.grey[600],
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '사진 ${imagePaths.length}장',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-              ],
+                ],
+              ),
             ),
           );
         },
