@@ -430,7 +430,7 @@ class _ReviewFinalScreenState extends State<ReviewFinalScreen> {
               const SizedBox(width: 16),
               Row(
                 children: [
-                  const Icon(Icons.group_outlined, size: 18, color: Colors.blueGrey),
+                  const Icon(Icons.group_outlined, size: 18, color: Colors.purple),
                   const SizedBox(width: 4),
                   Text(companion, style: const TextStyle(fontSize: 13)),
                 ],
