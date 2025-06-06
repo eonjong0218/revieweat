@@ -166,7 +166,9 @@ class _HomeScreenState extends State<HomeScreen> {
       _selectedIndex = index;
     });
 
-    if (index == 2) {
+    if (index == 1) {
+      Navigator.pushReplacementNamed(context, '/달력');
+    } else if (index == 2) {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const ProfileScreen()),
