@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-class ReviewDetailScreen extends StatelessWidget {
+class ReviewDetailScreen extends StatefulWidget {
   final Map<String, dynamic> review;
 
   const ReviewDetailScreen({
@@ -11,11 +11,25 @@ class ReviewDetailScreen extends StatelessWidget {
   });
 
   @override
+  State<ReviewDetailScreen> createState() => _ReviewDetailScreenState();
+}
+
+class _ReviewDetailScreenState extends State<ReviewDetailScreen> {
+  final PageController _pageController = PageController(); // final 추가
+  int _currentImageIndex = 0;
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     // 이미지 경로 파싱 및 서버 URL 처리
     List<String> imagePaths = [];
-    if (review['image_paths'] != null && review['image_paths'].toString().isNotEmpty) {
-      final rawPaths = review['image_paths'].toString().split(',')
+    if (widget.review['image_paths'] != null && widget.review['image_paths'].toString().isNotEmpty) {
+      final rawPaths = widget.review['image_paths'].toString().split(',')
           .where((path) => path.trim().isNotEmpty)
           .toList();
       
@@ -37,8 +51,8 @@ class ReviewDetailScreen extends StatelessWidget {
 
     // 별점 파싱
     int rating = 0;
-    if (review['rating'] != null) {
-      final ratingStr = review['rating'].toString();
+    if (widget.review['rating'] != null) {
+      final ratingStr = widget.review['rating'].toString();
       if (ratingStr.isNotEmpty) {
         if (ratingStr.contains('★')) {
           rating = ratingStr.split('★').length - 1;
@@ -51,63 +65,57 @@ class ReviewDetailScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Column(
+        child: Stack(
           children: [
-            // 상단 헤더 (X 버튼)
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+            // 메인 컨텐츠
+            SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24, 60, 24, 24), // 상단 패딩 증가
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.close,
-                        color: Colors.black54,
-                        size: 24,
-                      ),
-                    ),
+                  // 장소 정보 섹션 (위로 이동)
+                  _buildInfoSection(
+                    widget.review['place_name'] ?? '장소명 없음',
+                    widget.review['place_address'] ?? '',
+                    widget.review['review_date'] != null
+                        ? DateFormat('yyyy.MM.dd').format(DateTime.parse(widget.review['review_date']))
+                        : '',
+                    rating.toString(),
+                    widget.review['companion'] ?? '',
                   ),
+                  const SizedBox(height: 10), // Container → SizedBox
+
+                  // 이미지 섹션 (스와이프 가능)
+                  if (imagePaths.isNotEmpty) ...[
+                    _buildSwipeableImageSection(imagePaths),
+                    const SizedBox(height: 24), // Container → SizedBox
+                  ],
+
+                  // 리뷰 텍스트 (배경 추가)
+                  _buildReviewText(),
+                  const SizedBox(height: 40), // Container → SizedBox
                 ],
               ),
             ),
 
-            // 스크롤 가능한 컨텐츠
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 장소 정보 섹션
-                    _buildInfoSection(
-                      review['place_name'] ?? '장소명 없음',
-                      review['place_address'] ?? '',
-                      review['review_date'] != null
-                          ? DateFormat('yyyy.MM.dd').format(DateTime.parse(review['review_date']))
-                          : '',
-                      rating.toString(),
-                      review['companion'] ?? '',
-                    ),
-                    const SizedBox(height: 32),
-
-                    // 이미지 섹션 (매우 크게)
-                    if (imagePaths.isNotEmpty) ...[
-                      _buildImageSection(imagePaths),
-                      const SizedBox(height: 32),
-                    ],
-
-                    // 리뷰 텍스트
-                    _buildReviewText(),
-                    const SizedBox(height: 40),
-                  ],
+            // 상단 X 버튼 (위치 고정)
+            Positioned(
+              top: 30,
+              right: 20,
+              child: GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.close,
+                    color: Colors.black54,
+                    size: 24,
+                  ),
                 ),
               ),
             ),
@@ -127,10 +135,10 @@ class ReviewDetailScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(name, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black87)),
-          const SizedBox(height: 8),
+          const SizedBox(height: 8), // Container → SizedBox
           if (address.isNotEmpty)
             Text(address, style: const TextStyle(fontSize: 16, color: Colors.grey)),
-          const SizedBox(height: 16),
+          const SizedBox(height: 16), // Container → SizedBox
           Row(
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
@@ -139,17 +147,17 @@ class ReviewDetailScreen extends StatelessWidget {
                 Row(
                   children: [
                     const Icon(Icons.calendar_today_outlined, size: 18, color: Colors.lightBlue),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: 4), // Container → SizedBox
                     Text(date, style: const TextStyle(fontSize: 13)),
                   ],
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 16), // Container → SizedBox
               ],
               // 별점 (별 아이콘으로 표시)
               Row(
                 children: [
                   const Icon(Icons.star_border, size: 18, color: Colors.amber),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 4), // Container → SizedBox
                   // 별점을 별 아이콘으로 표시
                   ...List.generate(
                     5,
@@ -163,11 +171,11 @@ class ReviewDetailScreen extends StatelessWidget {
               ),
               // 동반인
               if (companion.isNotEmpty) ...[
-                const SizedBox(width: 16),
+                const SizedBox(width: 16), // Container → SizedBox
                 Row(
                   children: [
-                    const Icon(Icons.group_outlined, size: 18, color: Colors.blueGrey),
-                    const SizedBox(width: 4),
+                    const Icon(Icons.group_outlined, size: 18, color: Colors.purple),
+                    const SizedBox(width: 4), // Container → SizedBox
                     Text(companion, style: const TextStyle(fontSize: 13)),
                   ],
                 ),
@@ -179,213 +187,165 @@ class ReviewDetailScreen extends StatelessWidget {
     );
   }
 
-  // 이미지 섹션 위젯 (서버 이미지 URL 처리 개선)
-  Widget _buildImageSection(List<String> imagePaths) {
-    if (imagePaths.length == 1) {
-      // 이미지가 하나인 경우
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Image.network(
-          imagePaths.first,
-          width: double.infinity,
+  // 스와이프 가능한 이미지 섹션
+  Widget _buildSwipeableImageSection(List<String> imagePaths) {
+    return Column(
+      children: [
+        // 메인 이미지 (스와이프 가능)
+        SizedBox( // Container → SizedBox
           height: 300,
-          fit: BoxFit.cover,
-          loadingBuilder: (context, child, loadingProgress) {
-            if (loadingProgress == null) return child;
-            return Container(
-              width: double.infinity,
-              height: 300,
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
+          width: double.infinity,
+          child: Stack(
+            children: [
+              ClipRRect(
                 borderRadius: BorderRadius.circular(16),
-              ),
-              child: Center(
-                child: CircularProgressIndicator(
-                  value: loadingProgress.expectedTotalBytes != null
-                      ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                      : null,
-                ),
-              ),
-            );
-          },
-          errorBuilder: (context, error, stackTrace) {
-            print('이미지 로드 실패: ${imagePaths.first}, 에러: $error');
-            return Container(
-              width: double.infinity,
-              height: 300,
-              decoration: BoxDecoration(
-                color: Colors.grey[200],
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey[300]!),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.image_not_supported,
-                    size: 64,
-                    color: Colors.grey[400],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '이미지를 불러올 수 없습니다',
-                    style: TextStyle(
-                      color: Colors.grey[500],
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    imagePaths.first,
-                    style: TextStyle(
-                      color: Colors.grey[400],
-                      fontSize: 10,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
-      );
-    } else {
-      // 이미지가 여러 개인 경우
-      return Column(
-        children: [
-          // 메인 이미지
-          ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: Image.network(
-              imagePaths.first,
-              width: double.infinity,
-              height: 300,
-              fit: BoxFit.cover,
-              loadingBuilder: (context, child, loadingProgress) {
-                if (loadingProgress == null) return child;
-                return Container(
-                  width: double.infinity,
-                  height: 300,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Center(
-                    child: CircularProgressIndicator(
-                      value: loadingProgress.expectedTotalBytes != null
-                          ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                          : null,
-                    ),
-                  ),
-                );
-              },
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  width: double.infinity,
-                  height: 300,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Icon(
-                    Icons.image_not_supported,
-                    size: 64,
-                    color: Colors.grey[400],
-                  ),
-                );
-              },
-            ),
-          ),
-          const SizedBox(height: 12),
-          // 추가 이미지들 (썸네일)
-          SizedBox(
-            height: 80,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: imagePaths.length - 1,
-              itemBuilder: (context, index) {
-                return Container(
-                  margin: const EdgeInsets.only(right: 12),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.network(
-                      imagePaths[index + 1],
-                      width: 80,
-                      height: 80,
+                child: PageView.builder(
+                  controller: _pageController,
+                  onPageChanged: (index) {
+                    setState(() {
+                      _currentImageIndex = index;
+                    });
+                  },
+                  itemCount: imagePaths.length,
+                  itemBuilder: (context, index) {
+                    return Image.network(
+                      imagePaths[index],
+                      width: double.infinity,
+                      height: 300,
                       fit: BoxFit.cover,
                       loadingBuilder: (context, child, loadingProgress) {
                         if (loadingProgress == null) return child;
                         return Container(
-                          width: 80,
-                          height: 80,
                           decoration: BoxDecoration(
                             color: Colors.grey[100],
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(16),
                           ),
-                          child: const Center(
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              value: loadingProgress.expectedTotalBytes != null
+                                  ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                  : null,
+                            ),
                           ),
                         );
                       },
                       errorBuilder: (context, error, stackTrace) {
+                        // print 문 제거 (debugPrint 사용)
+                        debugPrint('이미지 로드 실패: ${imagePaths[index]}, 에러: $error');
                         return Container(
-                          width: 80,
-                          height: 80,
                           decoration: BoxDecoration(
                             color: Colors.grey[200],
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.grey[300]!),
                           ),
-                          child: Icon(
-                            Icons.image_not_supported,
-                            size: 24,
-                            color: Colors.grey[400],
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.image_not_supported,
+                                size: 64,
+                                color: Colors.grey[400],
+                              ),
+                              const SizedBox(height: 8), // Container → SizedBox
+                              Text(
+                                '이미지를 불러올 수 없습니다',
+                                style: TextStyle(
+                                  color: Colors.grey[500],
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
                           ),
                         );
                       },
+                    );
+                  },
+                ),
+              ),
+
+              // 이미지 인디케이터 (여러 장인 경우만 표시)
+              if (imagePaths.length > 1)
+                Positioned(
+                  bottom: 16,
+                  left: 0,
+                  right: 0,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(
+                      imagePaths.length,
+                      (index) => Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: _currentImageIndex == index
+                              ? Colors.white
+                              : Colors.white.withValues(alpha: 0.5),
+                        ),
+                      ),
                     ),
                   ),
-                );
-              },
-            ),
-          ),
-        ],
-      );
-    }
-  }
+                ),
 
-  // 리뷰 텍스트 위젯
-  Widget _buildReviewText() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          '리뷰',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
+              // 페이지 번호 표시 (여러 장인 경우만)
+              if (imagePaths.length > 1)
+                Positioned(
+                  top: 16,
+                  right: 16,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.6),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Text(
+                      '${_currentImageIndex + 1}/${imagePaths.length}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
-        const SizedBox(height: 16),
-        if (review['review_text'] != null && review['review_text'].toString().isNotEmpty)
-          Text(
-            review['review_text'],
-            style: const TextStyle(
-              fontSize: 16,
-              color: Colors.black87,
-              height: 1.6,
-            ),
-          )
-        else
-          Text(
-            '작성된 리뷰가 없습니다.',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[500],
-              fontStyle: FontStyle.italic,
-            ),
-          ),
       ],
+    );
+  }
+
+  // 리뷰 텍스트 위젯 (배경 추가)
+  Widget _buildReviewText() {
+    return Container(
+      width: double.infinity, // 사진 크기와 같은 가로 폭
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.grey[50], // 매우 옅은 회색 배경
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.grey[200]!,
+          width: 1,
+        ),
+      ),
+      child: widget.review['review_text'] != null && widget.review['review_text'].toString().isNotEmpty
+          ? Text(
+              widget.review['review_text'],
+              style: const TextStyle(
+                fontSize: 16,
+                color: Colors.black87,
+                height: 1.6,
+              ),
+            )
+          : Text(
+              '작성된 리뷰가 없습니다.',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey[500],
+                fontStyle: FontStyle.italic,
+              ),
+            ),
     );
   }
 }
