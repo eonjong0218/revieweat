@@ -262,3 +262,48 @@ def clear_all_search_history(
     ).delete()
     db.commit()
     return {"message": f"{deleted_count}개의 검색 기록이 삭제되었습니다."}
+
+# -------------------- [새로 추가된 엔드포인트] --------------------
+@app.get("/profile")
+def get_profile(
+    current_user: models.User = Depends(dependencies.get_current_user)
+):
+    """사용자 프로필 정보 조회"""
+    return {
+        "id": current_user.id,
+        "email": current_user.email,
+        "username": current_user.username,
+        "role": current_user.role,
+        "created_at": current_user.created_at.isoformat() if current_user.created_at else None
+    }
+
+@app.get("/my-reviews")
+def get_my_reviews(
+    current_user: models.User = Depends(dependencies.get_current_user),
+    db: Session = Depends(dependencies.get_db)
+):
+    """현재 로그인한 사용자의 리뷰 목록 조회"""
+    reviews = db.query(models.Review).filter(
+        models.Review.user_id == current_user.id
+    ).order_by(
+        models.Review.created_at.desc()
+    ).all()
+    
+    # 날짜 형식을 문자열로 변환
+    formatted_reviews = []
+    for review in reviews:
+        formatted_review = {
+            "id": review.id,
+            "user_id": review.user_id,
+            "place_name": review.place_name,
+            "place_address": review.place_address,
+            "review_date": review.review_date.isoformat() if review.review_date else None,
+            "rating": review.rating,
+            "companion": review.companion,
+            "review_text": review.review_text,
+            "image_paths": review.image_paths,
+            "created_at": review.created_at.isoformat() if review.created_at else None
+        }
+        formatted_reviews.append(formatted_review)
+    
+    return formatted_reviews
