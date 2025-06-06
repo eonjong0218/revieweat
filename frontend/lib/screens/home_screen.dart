@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 import 'search_screen.dart';
 import 'review_place_search_screen.dart';
 import 'profile_screen.dart';
+import 'search_result_screen.dart';
 
 /// 홈 화면 StatefulWidget
 class HomeScreen extends StatefulWidget {
@@ -25,6 +26,73 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // 현재 선택된 하단 네비게이션 인덱스
   int _selectedIndex = 0;
+
+  // 음식 관련 카테고리 목록 (아이콘과 색상 개선)
+  static const List<Map<String, dynamic>> _foodCategories = [
+    {
+      'name': '한식',
+      'icon': Icons.rice_bowl,
+      'color': Color(0xFF4285F4),
+      'types': ['korean_restaurant', 'restaurant'],
+      'keywords': '한식 한국음식 김치찌개 불고기 비빔밥'
+    },
+    {
+      'name': '중식',
+      'icon': Icons.ramen_dining,
+      'color': Color(0xFFEA4335),
+      'types': ['chinese_restaurant', 'restaurant'],
+      'keywords': '중식 중국음식 짜장면 짬뽕 탕수육'
+    },
+    {
+      'name': '일식',
+      'icon': Icons.set_meal,
+      'color': Color(0xFF34A853),
+      'types': ['japanese_restaurant', 'restaurant'],
+      'keywords': '일식 일본음식 초밥 라멘 우동'
+    },
+    {
+      'name': '양식',
+      'icon': Icons.dinner_dining,
+      'color': Color(0xFFFBBC04),
+      'types': ['italian_restaurant', 'restaurant'],
+      'keywords': '양식 서양음식 파스타 스테이크 피자'
+    },
+    {
+      'name': '카페',
+      'icon': Icons.coffee,
+      'color': Color(0xFF9C27B0),
+      'types': ['cafe', 'coffee_shop'],
+      'keywords': '카페 커피 아메리카노 라떼 디저트'
+    },
+    {
+      'name': '치킨',
+      'icon': Icons.lunch_dining,
+      'color': Color(0xFFFF9800),
+      'types': ['restaurant', 'meal_delivery'],
+      'keywords': '치킨 닭 후라이드 양념치킨'
+    },
+    {
+      'name': '피자',
+      'icon': Icons.local_pizza,
+      'color': Color(0xFFE91E63),
+      'types': ['restaurant', 'meal_delivery'],
+      'keywords': '피자 페퍼로니 치즈피자'
+    },
+    {
+      'name': '햄버거',
+      'icon': Icons.fastfood,
+      'color': Color(0xFF795548),
+      'types': ['restaurant', 'meal_delivery'],
+      'keywords': '햄버거 버거 패스트푸드'
+    },
+    {
+      'name': '술집',
+      'icon': Icons.sports_bar,
+      'color': Color(0xFF607D8B),
+      'types': ['bar', 'night_club'],
+      'keywords': '술집 맥주 소주 안주 호프'
+    }
+  ];
 
   @override
   void initState() {
@@ -127,6 +195,198 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  /// 카테고리 Modal Bottom Sheet 표시 (개선된 디자인)
+  void _showCategoryBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.65,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
+        ),
+        child: Column(
+          children: [
+            // 상단 핸들 (더 모던하게)
+            Container(
+              margin: const EdgeInsets.only(top: 16),
+              width: 48,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            
+            // 제목 섹션 (개선된 디자인)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const SizedBox(width: 16),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '카테고리 선택',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              '원하는 음식 종류를 선택해보세요',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            
+            // 카테고리 그리드 (개선된 레이아웃)
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: GridView.builder(
+                  physics: const BouncingScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    childAspectRatio: 0.9,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                  ),
+                  itemCount: _foodCategories.length,
+                  itemBuilder: (context, index) {
+                    final category = _foodCategories[index];
+                    return _buildModernCategoryCard(category);
+                  },
+                ),
+              ),
+            ),
+            
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 모던한 카테고리 카드 위젯
+  Widget _buildModernCategoryCard(Map<String, dynamic> category) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Colors.grey[200]!,
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          splashColor: (category['color'] as Color).withValues(alpha: 0.1),
+          highlightColor: (category['color'] as Color).withValues(alpha: 0.05),
+          onTap: () {
+            Navigator.pop(context);
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => SearchResultScreen(
+                  initialQuery: category['name'],
+                  isSpecificPlace: false,
+                  placeId: null,
+                  categoryFilter: {
+                    'name': category['name'],
+                    'types': category['types'],
+                    'keywords': category['keywords'],
+                  },
+                ),
+              ),
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // 아이콘 컨테이너 (그라데이션 효과)
+                Container(
+                  width: 45,
+                  height: 45,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        (category['color'] as Color).withValues(alpha: 0.8),
+                        (category['color'] as Color).withValues(alpha: 0.6),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: (category['color'] as Color).withValues(alpha: 0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    category['icon'] as IconData,
+                    color: Colors.white,
+                    size: 23,
+                  ),
+                ),
+                
+                const SizedBox(height: 12),
+                
+                // 카테고리 이름
+                Text(
+                  category['name'],
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                    letterSpacing: -0.2,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -160,7 +420,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withAlpha((0.1 * 255).round()),
+                      color: Colors.black.withValues(alpha: 0.1),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),
@@ -200,7 +460,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withAlpha((0.12 * 255).round()),
+                            color: Colors.black.withValues(alpha: 0.12),
                             blurRadius: 6,
                             offset: const Offset(0, 2),
                           ),
@@ -272,12 +532,17 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// 필터 버튼 생성
+  /// 필터 버튼 생성 (수정됨)
   Widget _buildFilterButton(String label) {
     return Padding(
       padding: const EdgeInsets.only(right: 4),
       child: GestureDetector(
-        onTap: () {}, // 필터 기능 추후 구현 가능
+        onTap: () {
+          if (label == '카테고리') {
+            _showCategoryBottomSheet(); // Modal Bottom Sheet 표시
+          }
+          // 다른 필터 기능은 추후 구현 가능
+        },
         child: Container(
           width: 68,
           height: 24,

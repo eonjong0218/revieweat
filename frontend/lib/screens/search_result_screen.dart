@@ -11,6 +11,7 @@ class SearchResultScreen extends StatefulWidget {
   final bool isSpecificPlace;
   final String? placeId;
   final Map<String, dynamic>? placeDetails;
+  final Map<String, dynamic>? categoryFilter; // 추가
 
   const SearchResultScreen({
     super.key, 
@@ -18,6 +19,7 @@ class SearchResultScreen extends StatefulWidget {
     this.isSpecificPlace = false,
     this.placeId,
     this.placeDetails,
+    this.categoryFilter, // 추가
   });
 
   @override
@@ -40,15 +42,16 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
     super.initState();
     _searchController = TextEditingController(text: widget.initialQuery);
     
-    // 초기화 시 특정 장소 정보가 있는 경우 상세 정보 표시 또는 placeId로 장소 정보 요청
-    if (widget.isSpecificPlace) {
+    // 카테고리 필터가 있는 경우 카테고리 기반 검색 수행
+    if (widget.categoryFilter != null) {
+      _performCategoryBasedSearch();
+    } else if (widget.isSpecificPlace) {
       if (widget.placeId != null) {
         _getPlaceDetailsFromId(widget.placeId!);
       } else if (widget.placeDetails != null) {
         _displaySpecificPlace();
       }
     } else {
-      // 일반 검색일 경우 위치 기반 검색 수행
       _performLocationBasedSearch(widget.initialQuery);
     }
   }
@@ -84,6 +87,108 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
     }
 
     return await Geolocator.getCurrentPosition();
+  }
+
+  // 카테고리 기반 검색 함수 추가
+  Future<void> _performCategoryBasedSearch() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final Position position = await _determinePosition();
+      final double lat = position.latitude;
+      final double lng = position.longitude;
+
+      await _searchByCategory(lat, lng, widget.categoryFilter!);
+    } catch (e) {
+      // 위치 권한이 없거나 실패한 경우 기본 위치 사용 (부산)
+      const double defaultLat = 35.2271;
+      const double defaultLng = 129.0790;
+      await _searchByCategory(defaultLat, defaultLng, widget.categoryFilter!);
+    }
+  }
+
+  // 카테고리별 장소 검색 함수
+  Future<void> _searchByCategory(double lat, double lng, Map<String, dynamic> category) async {
+    final List<String> types = List<String>.from(category['types']);
+    final String keywords = category['keywords'];
+    
+    final places = <Map<String, dynamic>>[];
+    final markers = <Marker>{};
+
+    // 각 타입별로 검색 수행
+    for (String type in types) {
+      final url = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json'
+          '?location=$lat,$lng'
+          '&radius=3000'
+          '&type=$type'
+          '&keyword=${Uri.encodeComponent(keywords)}'
+          '&key=$_apiKey'
+          '&language=ko';
+
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        if (data['status'] == 'OK') {
+          final results = data['results'] as List;
+
+          for (int i = 0; i < results.length && places.length < 20; i++) {
+            final place = results[i];
+            final location = place['geometry']?['location'];
+            
+            if (location != null) {
+              final placeLat = location['lat']?.toDouble() ?? 0.0;
+              final placeLng = location['lng']?.toDouble() ?? 0.0;
+              
+              // 중복 제거를 위해 place_id 확인
+              final placeId = place['place_id'];
+              if (!places.any((p) => p['place_id'] == placeId)) {
+                places.add({
+                  'title': place['name'] ?? '',
+                  'desc': place['vicinity'] ?? '',
+                  'phone': '',
+                  'tags': category['name'],
+                  'rating': place['rating']?.toString() ?? '4.0',
+                  'lat': placeLat,
+                  'lng': placeLng,
+                  'place_id': placeId,
+                });
+
+                markers.add(
+                  Marker(
+                    markerId: MarkerId('category_${places.length}'),
+                    position: LatLng(placeLat, placeLng),
+                    infoWindow: InfoWindow(
+                      title: place['name'] ?? '',
+                      snippet: place['vicinity'] ?? '',
+                    ),
+                  ),
+                );
+              }
+            }
+          }
+        }
+      }
+    }
+
+    setState(() {
+      _searchResults = places;
+      _markers = markers;
+      _isLoading = false;
+    });
+
+    // 검색 결과가 있으면 해당 위치로 카메라 이동
+    if (places.isNotEmpty && _mapController != null) {
+      _mapController!.animateCamera(
+        CameraUpdate.newLatLngZoom(
+          LatLng(lat, lng),
+          13.0,
+        ),
+      );
+    }
   }
 
   // 현재 위치로 카메라 이동
@@ -218,19 +323,17 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
     });
   }
 
-
   // 위치 기반 키워드 검색 수행 (기본 위치: defaultLat, defaultLng)
   Future<void> _performLocationBasedSearch(String query) async {
     if (query.isEmpty) return;
 
     setState(() {
-      _isLoading = true;  // 로딩 상태 시작
+      _isLoading = true;
     });
 
     const double defaultLat = 35.2271;
     const double defaultLng = 129.0790;
 
-    // 구글 플레이스 API nearbysearch 요청 URL 생성
     final url =
         'https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=$defaultLat,$defaultLng&radius=5000&keyword=${Uri.encodeComponent(query)}&key=$_apiKey&language=ko';
 
@@ -245,7 +348,6 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
         final places = <Map<String, dynamic>>[];
         final markers = <Marker>{};
 
-        // API 응답 결과에서 장소 정보와 마커 생성
         for (int i = 0; i < results.length; i++) {
           final place = results[i];
           final location = place['geometry']?['location'];
@@ -277,13 +379,11 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
           }
         }
 
-        // 검색 결과 및 마커 상태 업데이트
         setState(() {
           _searchResults = places;
           _markers = markers;
         });
 
-        // 기본 위치 기준으로 카메라 이동 (검색 결과가 있을 경우)
         if (places.isNotEmpty && _mapController != null) {
           _mapController!.animateCamera(
             CameraUpdate.newLatLngZoom(
@@ -293,14 +393,12 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
           );
         }
       } else {
-        // 검색 결과가 없거나 오류 시 빈 상태로 초기화
         setState(() {
           _searchResults = [];
           _markers = {};
         });
       }
     } else {
-      // 네트워크 요청 실패 시 빈 상태로 초기화
       setState(() {
         _searchResults = [];
         _markers = {};
@@ -308,7 +406,7 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
     }
 
     setState(() {
-      _isLoading = false; // 로딩 상태 종료
+      _isLoading = false;
     });
   }
 
@@ -329,7 +427,6 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
       'convenience_store': '편의점',
     };
     
-    // 타입 중 매칭되는 첫번째 태그 반환
     for (final type in types) {
       if (typeMap.containsKey(type)) {
         return typeMap[type]!;
@@ -344,7 +441,7 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
     return Padding(
       padding: const EdgeInsets.only(right: 4),
       child: GestureDetector(
-        onTap: () {},  // 필터 기능 미구현 상태
+        onTap: () {},
         child: Container(
           width: 68,
           height: 24,
@@ -366,7 +463,6 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
       onTap: () async {
         if (_mapController == null) return;
 
-        // 화면 중앙 좌표 얻기
         final center = await _mapController!.getLatLng(
           ScreenCoordinate(
             x: MediaQuery.of(context).size.width ~/ 2,
@@ -374,7 +470,6 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
           ),
         );
 
-        // 중심 좌표 기준 근처 장소 검색 수행
         _performNearbySearch(center.latitude, center.longitude);
       },
       child: Container(
@@ -402,7 +497,7 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
   // 주어진 위경도 기준 근처 장소 검색 수행
   Future<void> _performNearbySearch(double lat, double lng) async {
     setState(() {
-      _isLoading = true; // 로딩 상태 시작
+      _isLoading = true;
     });
 
     final url =
@@ -419,7 +514,6 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
         final places = <Map<String, dynamic>>[];
         final markers = <Marker>{};
 
-        // API 결과에서 장소 리스트와 마커 생성
         for (int i = 0; i < results.length; i++) {
           final place = results[i];
           final location = place['geometry']?['location'];
@@ -451,7 +545,6 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
           }
         }
 
-        // 상태 업데이트
         setState(() {
           _searchResults = places;
           _markers = markers;
@@ -460,7 +553,7 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
     }
 
     setState(() {
-      _isLoading = false; // 로딩 상태 종료
+      _isLoading = false;
     });
   }
 
@@ -469,7 +562,7 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // 구글 지도 위젯 - 초기 위치와 줌 설정, 현재 위치 표시 활성화
+          // 구글 지도 위젯
           GoogleMap(
             onMapCreated: _onMapCreated,
             initialCameraPosition: const CameraPosition(
@@ -481,7 +574,7 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
             markers: _markers,
           ),
 
-          // 상단 검색 바 - 뒤로가기, 검색 입력, 음성 아이콘, 닫기 버튼 포함
+          // 상단 검색 바
           Positioned(
             top: 60,
             left: 16,
@@ -498,13 +591,11 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
               ),
               child: Row(
                 children: [
-                  // 뒤로가기 버튼
                   IconButton(
                     icon: const Icon(Icons.arrow_back, size: 22, color: Colors.black45),
                     splashRadius: 20,
                     onPressed: () => Navigator.pop(context),
                   ),
-                  // 검색 입력 필드
                   Expanded(
                     child: TextField(
                       controller: _searchController,
@@ -518,7 +609,6 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
                       onSubmitted: (query) => _performLocationBasedSearch(query),
                     ),
                   ),
-                  // 음성 아이콘 및 닫기 버튼
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -542,7 +632,7 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
             ),
           ),
 
-          // 재검색 버튼 위치 - 가운데 배치
+          // 재검색 버튼
           Positioned(
             top: 116,
             left: 0,
@@ -558,7 +648,6 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
             builder: (context, scrollController) {
               return NotificationListener<DraggableScrollableNotification>(
                 onNotification: (notification) {
-                  // 시트 위치 변경 시 상태 업데이트
                   setState(() {
                     _sheetPosition = notification.extent;
                   });
@@ -573,7 +662,6 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
                     controller: scrollController,
                     padding: const EdgeInsets.only(top: 16),
                     children: [
-                      // 시트 상단 드래그 핸들 표시
                       Center(
                         child: Container(
                           width: 70,
@@ -586,7 +674,6 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
                       ),
                       const SizedBox(height: 6),
 
-                      // 필터 버튼들 (중심점, 카테고리, 방문상태, 평점, 동반여부)
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                         child: Row(
@@ -601,15 +688,12 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
                         ),
                       ),
 
-                      // 검색 결과 표시 부분
                       if (_isLoading)
-                        // 로딩 중일 때 로딩 인디케이터 표시
                         const Padding(
                           padding: EdgeInsets.symmetric(vertical: 50),
                           child: Center(child: CircularProgressIndicator()),
                         )
                       else if (_searchResults.isEmpty)
-                        // 검색 결과가 없을 때 표시할 UI
                         Padding(
                           padding: const EdgeInsets.symmetric(vertical: 50),
                           child: Column(
@@ -632,7 +716,6 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
                           ),
                         )
                       else
-                        // 검색 결과 각각의 장소 카드 표시
                         ..._searchResults.map((place) => _buildPlaceCard(
                               title: place['title'],
                               desc: place['desc'],
@@ -647,13 +730,12 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
             },
           ),
 
-          // 지도 제어 버튼들 (현재 위치 이동, 확대, 축소)
+          // 지도 제어 버튼들
           Positioned(
             right: 12,
             bottom: MediaQuery.of(context).size.height * _sheetPosition + 20,
             child: Column(
               children: [
-                // 현재 위치 버튼
                 GestureDetector(
                   onTap: _moveToCurrentLocation,
                   child: Container(
@@ -681,7 +763,6 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
                 ),
                 const SizedBox(height: 8),
 
-                // 확대/축소 버튼 컨테이너
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -696,7 +777,6 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
                   ),
                   child: Column(
                     children: [
-                      // 확대 버튼
                       GestureDetector(
                         onTap: _zoomIn,
                         child: Container(
@@ -716,7 +796,6 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
                           ),
                         ),
                       ),
-                      // 축소 버튼
                       GestureDetector(
                         onTap: _zoomOut,
                         child: const SizedBox(
@@ -742,7 +821,7 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
     );
   }
 
-  // 장소 카드 위젯 생성 - 제목, 설명, 전화번호, 태그, 평점 포함
+  // 장소 카드 위젯 생성
   Widget _buildPlaceCard({
     required String title,
     required String desc,
@@ -768,7 +847,6 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 제목과 평점, 즐겨찾기 아이콘을 한 행에 배치
           Row(
             children: [
               Expanded(
@@ -784,7 +862,6 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
                 ),
               ),
               const SizedBox(width: 8),
-              // 평점 표시 컨테이너
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
@@ -808,13 +885,11 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
                 ),
               ),
               const SizedBox(width: 8),
-              // 즐겨찾기 아이콘
               Icon(Icons.bookmark_border, color: Colors.grey[400], size: 20),
             ],
           ),
           const SizedBox(height: 8),
 
-          // 장소 설명 텍스트
           Text(
             desc,
             style: TextStyle(
@@ -826,7 +901,6 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
             overflow: TextOverflow.ellipsis,
           ),
 
-          // 태그가 있을 경우 태그 표시 컨테이너 추가
           if (tags.isNotEmpty) ...[
             const SizedBox(height: 8),
             Container(
@@ -846,7 +920,6 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
             ),
           ],
 
-          // 전화번호가 있을 경우 텍스트로 표시
           if (phone.isNotEmpty) ...[
             const SizedBox(height: 8),
             Text(
