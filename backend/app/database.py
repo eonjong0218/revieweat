@@ -32,10 +32,10 @@ def get_db():
 
 def create_tables():
     """모든 테이블을 데이터베이스에 생성 (모델 import 필요)"""
-    from .models import User, SearchHistory, Review  
+    from .models import User, SearchHistory, Review  # UserSession 제거
     Base.metadata.create_all(bind=engine)
 
 def init_db():
     """데이터베이스 초기화 함수 (개발 환경에서 테이블 생성 용도)"""
-    from .models import User, SearchHistory, Review
+    from .models import User, SearchHistory, Review  # UserSession 제거
     create_tables()
