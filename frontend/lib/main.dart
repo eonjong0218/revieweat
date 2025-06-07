@@ -11,7 +11,7 @@ import 'screens/review_second_screen.dart';
 import 'screens/review_final_screen.dart';
 import 'screens/review_success_screen.dart';
 import 'screens/profile_screen.dart';
-import 'screens/calendar_screen.dart'; // 추가된 import
+import 'screens/calendar_screen.dart';
 
 // 전역 로거 인스턴스
 final Logger logger = Logger(

@@ -66,7 +66,7 @@ class _HomeScreenState extends State<HomeScreen> {
     },
     {
       'name': '치킨',
-      'icon': Icons.lunch_dining,
+      'icon': Icons.egg,
       'color': Color(0xFFFF9800),
       'types': ['restaurant', 'meal_delivery'],
       'keywords': '치킨 닭 후라이드 양념치킨'
