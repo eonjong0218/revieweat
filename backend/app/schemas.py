@@ -22,6 +22,20 @@ class UserResponse(UserBase):
 
     model_config = ConfigDict(from_attributes=True)
 
+# User 세션 정보 포함 응답 스키마
+class UserWithSessionResponse(UserBase):
+    id: int
+    role: str
+    session_token: Optional[str] = None
+    is_http_only: bool = True
+    is_secure: bool = True
+    session_expires_at: Optional[datetime] = None
+    last_login_at: Optional[datetime] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
 
 # Token 관련 스키마 (JWT 등)
 class Token(BaseModel):
@@ -30,6 +44,32 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     email: Optional[str] = None
+
+
+# 세션 상태 확인 스키마 (users 테이블 기반)
+class SessionStatusResponse(BaseModel):
+    user_id: int
+    username: str
+    email: str
+    http_only_enabled: bool
+    secure_enabled: bool
+    session_active: bool
+    last_login_at: Optional[datetime] = None
+    session_expires_at: Optional[datetime] = None
+    created_at: datetime
+
+# 세션 업데이트 스키마
+class SessionUpdateRequest(BaseModel):
+    session_token: str
+    is_http_only: bool = True
+    is_secure: bool = True
+    expires_at: datetime
+
+# 간단한 세션 체크 응답 스키마
+class SessionCheckResponse(BaseModel):
+    http_only_checked: bool
+    secure_checked: bool
+    session_valid: bool
 
 
 # 검색 기록 스키마 (최근 검색 등)
@@ -88,7 +128,7 @@ class ReviewResponse(BaseModel):
 # 리뷰 생성 응답 스키마
 class ReviewCreateResponse(BaseModel):
     message: str
-    review_id: str
+    review_id: int  # str에서 int로 수정
     place_name: str
     rating: str
     image_count: int
