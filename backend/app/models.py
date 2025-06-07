@@ -3,7 +3,7 @@ from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from .database import Base
 
-# User 모델: 사용자 정보 테이블
+# User 모델: 사용자 정보 테이블 (세션 정보 포함)
 class User(Base):
     __tablename__ = "users"
 
@@ -12,7 +12,16 @@ class User(Base):
     username = Column(String, unique=True, index=True, nullable=False) 
     hashed_password = Column(String, nullable=False) 
     role = Column(String, default="user")  
+    
+    # 세션 관련 필드 추가
+    session_token = Column(String, nullable=True, index=True)
+    is_http_only = Column(Boolean, default=True, nullable=False)  # HTTP Only 설정 체크
+    is_secure = Column(Boolean, default=True, nullable=False)     # Secure 설정 체크
+    session_expires_at = Column(DateTime(timezone=True), nullable=True)
+    last_login_at = Column(DateTime(timezone=True), nullable=True)
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now()) 
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     # 사용자와 검색기록(1:N) 관계
     search_histories = relationship("SearchHistory", back_populates="user", cascade="all, delete-orphan")
@@ -20,7 +29,7 @@ class User(Base):
     reviews = relationship("Review", back_populates="user", cascade="all, delete-orphan")
 
     def __repr__(self):
-        return f"<User(id={self.id}, email={self.email}, username={self.username}, role={self.role})>"
+        return f"<User(id={self.id}, email={self.email}, username={self.username}, role={self.role}, http_only={self.is_http_only}, secure={self.is_secure})>"
 
 # SearchHistory 모델: 검색 기록 테이블
 class SearchHistory(Base):
