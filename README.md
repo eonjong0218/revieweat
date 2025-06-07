@@ -54,6 +54,43 @@ ReviewEat은 이런 한계를 보완해
 | DB   | PostgreSQL      | 사용자, 리뷰, 음식점 데이터 저장              |
 | Deployment | Docker Compose  | 백엔드, DB 컨테이너화하여 통합 관리            |
 
+## 📁 프로젝트 구조
+```
+Revieweat/
+├── backend/
+│   └── app/
+│       ├── __init__.py
+│       ├── auth.py
+│       ├── config.py
+│       ├── crud.py
+│       ├── database.py
+│       ├── dependencies.py
+│       ├── main.py
+│       ├── models.py
+│       └── schemas.py
+│
+├── database/
+│   └── init.sql
+│
+├── frontend/
+│   └── lib/
+│       ├── main.dart
+│       └── screens/
+│           ├── calendar_screen.dart
+│           ├── home_screen.dart
+│           ├── login_screen.dart
+│           ├── profile_screen.dart
+│           ├── register_screen.dart
+│           ├── review_detail_screen.dart
+│           ├── review_final_screen.dart
+│           ├── review_place_search_screen.dart
+│           ├── review_second_screen.dart
+│           ├── review_success_screen.dart
+│           ├── search_result_screen.dart
+│           ├── search_screen.dart
+│           └── splash_screen.dart
+```
+
 ## 🚀 CI/CD 워크플로우
 GitHub Actions를 통한 자동화된 빌드 및 테스트 파이프라인 구축
 
